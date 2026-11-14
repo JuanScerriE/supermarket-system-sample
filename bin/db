@@ -1,0 +1,151 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * small CLI for managing the SQLite database during development/testing.
+ */
+
+declare(strict_types=1);
+
+if (php_sapi_name() !== 'cli') {
+    exit("this script must be run from the command line.\n");
+}
+
+$cwd = getcwd();
+
+if ($cwd === false) {
+    exit("unable to get current working directory.\n");
+}
+
+assert($cwd != false);
+
+$config = require $cwd . '/config.php';
+$sqlite_db_path = $config['db_path'];
+
+$schema_file = $cwd . '/schema/create_db.sql';
+$seed_file = $cwd . '/schema/seed.sql';
+
+function connect(string $db_path): PDO
+{
+    $dir = dirname($db_path);
+
+    // as per the docs this check whether a file or director exists
+    if (!file_exists($dir)) {
+        // permission 0775 does the following:
+        // 7 -> owner: read, write & execute
+        // 7 -> group: read, write & execute
+        // 5 -> other: read & execute
+        mkdir($dir, 0775, true);
+    }
+
+    $pdo = new PDO('sqlite:' . $db_path, options: [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    ]);
+
+    // enable foreign_keys on SQLite
+    $pdo->exec('PRAGMA foreign_keys = ON');
+
+    return $pdo;
+}
+
+function run_sql_file(PDO $pdo, string $file): void
+{
+    if (!is_file($file)) {
+        throw new RuntimeException("$file does not exist");
+    }
+
+    // run the whole file in one transaction: all of it applies, or none of it
+    $pdo->beginTransaction();
+
+    try {
+        $pdo->exec(file_get_contents($file));
+
+        // commit the changes
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+
+        // propagate the error
+        throw $e;
+    }
+}
+
+/**
+ * @throws Throwable
+ */
+function create(string $db_path, string $schema_file): void
+{
+    run_sql_file(connect($db_path), $schema_file);
+    echo "created schema in $db_path\n";
+}
+
+/**
+ * @throws Throwable
+ */
+function seed(string $db_path, string $seed_file): void
+{
+    run_sql_file(connect($db_path), $seed_file);
+    echo "seeded $db_path\n";
+}
+
+function drop(string $db_path): void
+{
+    // also remove SQLite's WAL/journal side files if present
+    foreach ([$db_path, "$db_path-wal", "$db_path-shm", "$db_path-journal"] as $file) {
+        if (is_file($file)) {
+            unlink($file);
+        }
+    }
+    echo "dropped $db_path\n";
+}
+
+$command = $argv[1] ?? 'help';
+
+try {
+    if (is_null($sqlite_db_path)) {
+        throw new RuntimeException("\$sqlite_db_path cannot be null");
+    }
+
+    switch ($command) {
+        case 'create':
+            create($sqlite_db_path, $schema_file);
+            break;
+        case 'seed':
+            seed($sqlite_db_path, $seed_file);
+            break;
+        case 'reset':
+            drop($sqlite_db_path);
+            create($sqlite_db_path, $schema_file);
+            seed($sqlite_db_path, $seed_file);
+            break;
+        case 'drop':
+            drop($sqlite_db_path);
+            break;
+        case 'shell':
+            // hand the terminal over to sqlite3 until the user quits it
+            exec('sqlite3 ' . escapeshellarg($sqlite_db_path), $code);
+            // exist with the exit code of the command
+            exit($code);
+        default:
+            echo <<<TXT
+Usage: db <command>
+    small CLI for managing the SQLite database during development/testing.
+    
+      bin/db create   create the database file and tables (safe to re-run)
+      bin/db seed     insert test data from schema/seed.sql
+      bin/db reset    delete the database, then create + seed it from scratch
+      bin/db drop     delete the database file
+      bin/db shell    open the database in the sqlite3 shell
+    
+    uses PDO (the same driver the app uses), so only `shell` needs the
+    sqlite3 program installed.
+
+TXT;
+            exit($command === 'help' ? 0 : 1);
+    }
+} catch (Throwable $e) {
+    fwrite(STDERR, "db: {$e->getMessage()}\n");
+
+    // exit with an 1 indicating an error
+    exit(1);
+}

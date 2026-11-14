@@ -1,0 +1,109 @@
+<?php
+/**
+ * add a product to a supermarket: either pick an existing product, or create
+ * a new one. stock and price apply to both.
+ *
+ * @var array{id: int, name: string}         $supermarket
+ * @var list<array{id: int, name: string}>   $products     products this supermarket doesn't stock yet
+ */
+
+// with nothing left to pick, start on "new product"
+$default_mode = $products === [] ? 'new' : 'existing';
+?>
+
+<h1>Add Product to <?= e($supermarket['name']) ?></h1>
+
+<form method="POST" action="/api/supermarkets/<?= e($supermarket['id']) ?>/products/create"
+      enctype="multipart/form-data" class="form-stack" id="add-supermarket-product">
+
+  <fieldset class="choice">
+    <legend>Product</legend>
+    <label>
+      <input type="radio" name="product_mode" value="existing"
+        <?= $default_mode === 'existing' ? 'checked' : '' ?>
+        <?= $products === [] ? 'disabled' : '' ?>>
+      Use an existing product
+    </label>
+    <label>
+      <input type="radio" name="product_mode" value="new" <?= $default_mode === 'new' ? 'checked' : '' ?>>
+      Create a new product
+    </label>
+  </fieldset>
+
+  <!-- the section that isn't chosen is `disabled`: its fields are skipped
+       by validation and not sent with the form -->
+  <fieldset id="existing-product-fields" class="form-stack" <?= $default_mode !== 'existing' ? 'disabled' : '' ?>>
+    <label for="existing_product">Search products</label>
+    <input type="text" list="product_options" id="existing_product" name="existing_product"
+           placeholder="Start typing…" autocomplete="off" required>
+    <!-- names aren't unique, so each option ends in its id: "Name (#42)" -->
+    <datalist id="product_options">
+      <?php foreach ($products as $product): ?>
+        <option value="<?= e($product['name']) ?> (#<?= e($product['id']) ?>)"></option>
+      <?php endforeach; ?>
+    </datalist>
+    <?php if ($products === []): ?>
+      <p class="hint"><?= e($supermarket['name']) ?> already stocks every product.</p>
+    <?php endif; ?>
+  </fieldset>
+
+  <fieldset id="new-product-fields" class="form-stack" <?= $default_mode !== 'new' ? 'disabled' : '' ?>>
+    <label for="product_name">Product name</label>
+    <input type="text" id="product_name" name="product_name" placeholder="e.g. Coca Cola 250ml" required>
+
+    <label for="product_image_file">Product image (optional)</label>
+    <div class="image-picker">
+      <img id="product_preview" class="product-image" width="128" height="128"
+           alt="" src="/assets/no_image_available.jpg">
+      <input type="file" id="product_image_file" name="product_image_file"
+             accept="image/jpeg, image/png, image/webp"
+             data-resize-max="512" data-preview="#product_preview">
+    </div>
+  </fieldset>
+
+  <label for="product_stock">Stock</label>
+  <input type="number" id="product_stock" name="product_stock" min="0" step="1" value="0" required>
+
+  <label for="product_price">Price (€)</label>
+  <!-- inputmode gives phones a number keypad; pattern matches what the server accepts -->
+  <input type="text" id="product_price" name="product_price" inputmode="decimal"
+         pattern="\d+([.,]\d{2})?" title="A number, or a number with 2 decimals, e.g. 1 or 1.99"
+         placeholder="1.99" required>
+
+  <button type="submit">Add Product</button>
+</form>
+
+<div class="toolbar">
+  <a class='button button-secondary' href="/supermarkets/<?= e($supermarket['id']) ?>">← Back to <?= e($supermarket['name']) ?></a>
+  <a class='button button-secondary' href="/">← Home</a>
+</div>
+
+<script>
+  {
+    const form = document.querySelector('#add-supermarket-product');
+    const sections = {
+      existing: document.querySelector('#existing-product-fields'),
+      new: document.querySelector('#new-product-fields'),
+    };
+
+    // switching the radio enables one section and disables the other
+    // (CSS hides the disabled one, see .form-stack fieldset:disabled)
+    form.addEventListener('change', (event) => {
+      if (event.target.name !== 'product_mode') return;
+
+      for (const [mode, section] of Object.entries(sections)) {
+        section.disabled = mode !== event.target.value;
+      }
+    });
+
+    // only accept text that matches one of the listed products
+    const picker = document.querySelector('#existing_product');
+    picker.addEventListener('input', () => {
+      const match = [...picker.list.options].some((option) => option.value === picker.value);
+      picker.setCustomValidity(match ? '' : 'Pick a product from the list.');
+    });
+  }
+</script>
+
+<!-- shrinks the picked image in the browser before upload (see the file for details) -->
+<script src="/js/image-resize.js" defer></script>

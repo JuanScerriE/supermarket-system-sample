@@ -1,0 +1,347 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * generates schema/seed.sql with lots of fake but realistic-looking data for
+ * the tables in schema/create_db.sql.
+ */
+
+declare(strict_types=1);
+
+if (php_sapi_name() !== 'cli') {
+    exit("this script must be run from the command line.\n");
+}
+
+$options = getopt('', ['supermarkets:', 'products:', 'coverage:', 'image_chance:', 'seed:', 'out:', 'help']);
+
+// TODO(juan): deal with $rest_index as set by getopt and error out accordingly
+echo "--- start debug output ---\n";
+var_dump($options);
+echo "--- end debug output ---\n";
+
+if (isset($options['help'])) {
+    echo<<<TXT
+Usage: generate-seed
+    generates schema/seed.sql with lots of fake but realistic-looking data for
+    the tables in schema/create_db.sql.
+    
+      bin/generate-seed                                  defaults below
+      bin/generate-seed --supermarkets=50 --products=5000
+      bin/generate-seed --coverage=0.3 --seed=42 --out=/tmp/seed.sql
+    
+    options:
+      --supermarkets=N   number of supermarkets              (default 20)
+      --products=N       number of products                  (default 1000)
+      --coverage=F       0..1, chance a supermarket stocks a
+                         given product                       (default 0.6)
+      --images=F         0..1, chance a product gets an
+                         image; the rest are NULL            (default 0.9)
+      --seed=N           random seed; the same seed always
+                         produces the same file              (default 1)
+      --out=PATH         output file                         (default schema/seed.sql)
+    
+    images: if schema/images/<type>.jpg (or .jpeg/.png/.webp/.svg) exists, every
+    product of that type uses it, e.g. coffee.jpg, olive-oil.png. other types
+    get a generated placeholder SVG.
+    
+    then load it with: bin/db reset
+
+TXT;
+    exit(0);
+}
+
+$supermarket_count = (int)($options['supermarkets'] ?? 20);
+$product_count     = (int)($options['products'] ?? 1000);
+$coverage          = (float)($options['coverage'] ?? 0.6);
+$image_chance      = (float)($options['images'] ?? 0.9);
+$random_seed       = (int)($options['seed'] ?? 1);
+
+$cwd = getcwd();
+if ($cwd === false) {
+    exit("unable to get current working directory.\n");
+}
+
+$out_file = $options['out'] ?? $cwd . '/schema/seed.sql';
+
+if ($supermarket_count < 1
+        || $product_count < 1
+        || $coverage < 0
+        || $coverage > 1
+        || $image_chance < 0
+        || $image_chance > 1) {
+    fwrite(STDERR, "invalid options, see --help\n");
+    exit(1);
+}
+
+// a fixed seed makes mt_rand() return the same sequence every run, so the
+// generated data is reproducible (handy when a test depends on it)
+mt_srand($random_seed);
+
+// ---- word lists ------------------------------------------------------------
+
+// the chains and towns together allow us to create a number of different supermarkets
+// the upper limit is len($chains) * len($towns)
+
+$chains = [
+        'FreshMart',
+        'ValueFoods',
+        'GreenBasket',
+        'DailyGrocer',
+        'PennyWise',
+        'HarvestHall',
+        'CornerStore',
+        'MegaSaver',
+        'DueFresh',
+        'Daves',
+        'Lidl',
+        'EuroSpin',
+        'Aldi',
+        'StepIn',
+        'Pavi',
+];
+$towns  = [
+        'Valletta',
+        'Sliema',
+        'Birkirkara',
+        'Mosta',
+        'Qormi',
+        'Żabbar',
+        'Rabat',
+        'Naxxar',
+        'Gżira',
+        'Paola',
+        'Marsaskala',
+        'Swieqi',
+        'Fgura',
+        'Żejtun',
+        'Attard',
+        'Victoria'
+];
+
+$brands = [
+        'Sunny Farm',
+        'Golden Fields',
+        'Blue Coast',
+        'Nonna\'s',
+        'Everyday',
+        'Prime Choice',
+        'Hillside',
+        'Little Oak',
+        'Ocean Catch',
+        'Mill & Co.',
+        'Pure Valley',
+        'Red Barn',
+        'Benna',
+        'Camel Brand',
+];
+
+// product type => [possible variants, possible sizes, min price cents, max price cents]
+$types = [
+        'Milk'               => [['Whole', 'Semi-Skimmed', 'Skimmed', 'Lactose-Free'], ['500ml', '1L', '2L'], 60, 250],
+        'Bread'              => [['White', 'Wholemeal', 'Sourdough', 'Multigrain', 'Rye'], ['400g', '800g'], 80, 350],
+        'Cheese'             => [['Cheddar', 'Mozzarella', 'Gouda', 'Feta', 'Parmesan'], ['200g', '400g'], 150, 900],
+        'Pasta'              => [['Penne', 'Spaghetti', 'Fusilli', 'Farfalle', 'Rigatoni'], ['500g', '1kg'], 70, 300],
+        'Rice'               => [['Basmati', 'Arborio', 'Jasmine', 'Long Grain', 'Brown'], ['500g', '1kg', '2kg'], 90, 450],
+        'Olive Oil'          => [['Extra Virgin', 'Light', 'Organic'], ['500ml', '1L'], 400, 1500],
+        'Coffee'             => [['Ground', 'Beans', 'Instant', 'Decaf'], ['200g', '250g', '500g'], 250, 1200],
+        'Tea'                => [['Black', 'Green', 'Peppermint', 'Chamomile', 'Earl Grey'], ['20 bags', '40 bags', '80 bags'], 120, 600],
+        'Juice'              => [['Orange', 'Apple', 'Pineapple', 'Mixed Fruit'], ['1L', '1.5L'], 90, 400],
+        'Yoghurt'            => [['Greek', 'Natural', 'Strawberry', 'Vanilla'], ['150g', '500g', '1kg'], 50, 450],
+        'Cereal'             => [['Corn Flakes', 'Muesli', 'Granola', 'Oat Flakes'], ['375g', '500g', '750g'], 150, 550],
+        'Tomatoes'           => [['Chopped', 'Whole Peeled', 'Passata', 'Cherry'], ['400g', '700g'], 50, 250],
+        'Chicken'            => [['Breast', 'Thighs', 'Drumsticks', 'Whole'], ['500g', '1kg'], 300, 1200],
+        'Biscuits'           => [['Chocolate', 'Digestive', 'Butter', 'Oat'], ['150g', '300g'], 80, 350],
+        'Washing Up Liquid'  => [['Lemon', 'Original', 'Sensitive'], ['500ml', '1L'], 100, 400],
+        'Cola'               => [['Normal', 'Diet', 'Clear'], ['500ml', '1L'], 100, 400],
+];
+
+// ---- helpers ---------------------------------------------------------------
+
+// use to pick an item from an array
+function pick(array $items): mixed
+{
+    return $items[mt_rand(0, count($items) - 1)];
+}
+
+/** quote a string for SQL: wrap in '' and escape by doubling any ' inside it */
+function sql_str(?string $s): string
+{
+    return $s === null ? 'NULL' : "'" . str_replace("'", "''", $s) . "'";
+}
+
+/** a BLOB literal for SQL: X'89504e47...' (the bytes written as hex) */
+function sql_blob(?string $bytes): string
+{
+    return $bytes === null ? 'NULL' : "X'" . bin2hex($bytes) . "'";
+}
+
+/** chance() returns true with probability $p (0..1) */
+function chance(float $p): bool
+{
+    return mt_rand() / mt_getrandmax() < $p;
+}
+
+/**
+ * write rows as multi-row INSERT statements, in batches, which is far faster
+ * to load than one INSERT per row
+ *
+ * @param resource $fh
+ * @param iterable<array> $rows each row is a list of already-SQL-formatted values
+ */
+function write_inserts($fh, string $table, array $columns, iterable $rows, int $batch_size = 500): int
+{
+    $batch = [];
+
+    // this is a closure in PHP
+    $flush = function () use ($fh, $table, $columns, &$batch) {
+        // if $batch is empty do nothing
+        if ($batch) {
+            fwrite($fh, "INSERT INTO $table (" . implode(', ', $columns) . ") VALUES\n  "
+                . implode(",\n  ", $batch) . ";\n\n");
+            $batch = [];
+        }
+    };
+
+
+    $count = 0;
+    // in most cases we want $rows to be a generator
+    foreach ($rows as $row) {
+        $batch[] = '(' . implode(', ', $row) . ')';
+        $count++;
+
+        if (count($batch) >= $batch_size) {
+            $flush();
+        }
+    }
+    $flush();
+
+    return $count;
+}
+
+// ---- generators (generators yield one row at a time, so memory stays low
+//      even for millions of rows) ---------------------------------------------
+
+/** supermarket names must be UNIQUE, so build every chain/town combination
+ *  and shuffle; if more are needed than combinations exist, add a branch number */
+function supermarkets(int $count, array $chains, array $towns): Generator
+{
+    $names = [];
+
+    foreach ($chains as $chain) {
+        foreach ($towns as $town) {
+            $names[] = "$chain $town";
+        }
+    }
+
+    // shuffle() uses the same seeded generator as mt_rand() since PHP 8.1
+    shuffle($names);
+
+    // this is a bit of a mathematical trick so we have the following maximum
+    // amount of names say 10 chains and 10 towns, so the maximum is 100 if
+    // the requirement is that we have more than a 100, each chain + town
+    // combination can be repeated one more time with an additional number say
+    // #2; this can be repeated for every new round reached
+    for ($id = 1; $id <= $count; $id++) {
+        // this will loop over the combinations after we exceed count($names)
+        $base = $names[($id - 1) % count($names)];
+        // this will give us the level we are in we use $id - 1 for the following
+        // reason if $id = 100 and count($names) = 100, then 100 / 100 = 1, which
+        // tells us we are in round two which is incorrect, so 99 / 100 = 0 which
+        // correctly identifies round one
+        $round = intdiv($id - 1, count($names));
+        $name = $round === 0 ? $base : "$base #" . ($round + 1);
+        yield [$id, sql_str($name)];
+    }
+}
+
+/** products: names may repeat, which is allowed by the schema.
+ *  all images are assumed to be coffee, my favourite drink or NULL
+ *  also remembers each product's base price for the supermarket_products step */
+function products(int $count, array $brands, array $types, float $image_chance,
+                  string $image_dir, array &$base_prices): Generator
+{
+    $type_names = array_keys($types);
+
+    $file_present = is_file($image_dir . "/coffee.jpg");
+
+    $image = null;
+
+    if ($file_present) {
+        $image = file_get_contents($image_dir . "/coffee.jpg");
+    } else {
+        echo "generate-seed: $image_dir/coffee.jpg does not exist\n";
+    }
+
+    for ($id = 1; $id <= $count; $id++) {
+        $type = pick($type_names);
+        [$variants, $sizes, $min, $max] = $types[$type];
+
+        $name  = sprintf('%s %s %s %s', pick($brands), pick($variants), $type, pick($sizes));
+        $image = $file_present && chance($image_chance) ? $image : null;
+
+        // we are selecting this to ensure that the price ranges don't very dramatically
+        // between supermarkets
+        $base_prices[$id] = mt_rand($min, $max);
+
+        yield [$id, sql_str($name), sql_blob($image), $image !== null ? sql_str(md5($image)) : 'NULL'];
+    }
+}
+
+/** each (supermarket, product) pair appears at most once, matching the
+ *  composite PRIMARY KEY; prices vary a little between supermarkets */
+function supermarket_products(int $supermarket_count, array $base_prices, float $coverage): Generator
+{
+    // supermarket_count is the number of supermarkets, and the ids are all incremented
+    // so this works, we go over every supermarket and add items according to a
+    // probability of $coverage
+    for ($s = 1; $s <= $supermarket_count; $s++) {
+        foreach ($base_prices as $p => $base) {
+            if (!chance($coverage)) {
+                continue;
+            }
+            $price = (int)round($base * mt_rand(85, 115) / 100); // +/-15%
+            $stock = mt_rand(1, 10) === 1 ? 0 : mt_rand(1, 250); // ~10% out of stock
+            yield [$s, $p, $stock, $price];
+        }
+    }
+}
+
+// ---- write the file --------------------------------------------------------
+
+$fh = fopen($out_file, 'w') ?: exit("cannot write to $out_file\n");
+
+assert(is_resource($fh));
+
+fwrite($fh, "-- GENERATED by bin/generate-seed, do not edit by hand.\n");
+fwrite($fh,
+        sprintf("-- options: supermarkets=%d products=%d coverage=%s images=%s seed=%d\n\n",
+            $supermarket_count, $product_count, $coverage, $image_chance, $random_seed)
+);
+
+$base_prices = [];
+
+$supermarkets_count = write_inserts($fh,
+        'supermarkets', ['id', 'name'],
+        supermarkets($supermarket_count, $chains, $towns));
+
+$products_count = write_inserts($fh,
+        'products', ['id', 'name', 'image', 'image_md5'],
+        products($product_count, $brands, $types, $image_chance, $cwd . '/schema/images', $base_prices));
+
+$supermarket_products_count = write_inserts($fh,
+        'supermarket_products', ['supermarket_id', 'product_id', 'stock', 'price_cents'],
+        supermarket_products($supermarket_count, $base_prices, $coverage));
+
+$counts = [
+        'supermarkets' => $supermarkets_count,
+        'products' => $products_count,
+        'supermarket_products' => $supermarket_products_count,
+];
+
+fclose($fh);
+
+foreach ($counts as $table => $n) {
+    printf("%-22s %8d rows\n", $table, $n);
+}
+
+echo "wrote $out_file\n";

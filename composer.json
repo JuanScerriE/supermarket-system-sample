@@ -1,0 +1,40 @@
+{
+    "name": "learning/supermarket-system",
+    "description": "Sample supermarket system for learning PHP",
+    "type": "project",
+    "require": {
+        "php": ">=8.5",
+        "ext-pdo": "*",
+        "ext-uri": "*",
+        "ext-fileinfo": "*",
+        "ext-gd": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    },
+    "scripts": {
+        "serve": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php -d display_errors=1 -d error_reporting=-1 -S localhost:8000 -t public"
+        ],
+        "serve:debug": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php -d display_errors=1 -d error_reporting=-1 -d xdebug.start_with_request=yes -S localhost:8000 -t public"
+        ],
+        "serve:lan": [
+            "Composer\\Config::disableProcessTimeout",
+            "@putenv PHP_CLI_SERVER_WORKERS=4",
+            "@php -d display_errors=0 -d log_errors=1 -d xdebug.mode=off -S 0.0.0.0:5173 -t public"
+        ],
+        "db:debug":"@php -d display_errors=1 -d error_reporting=-1 -d xdebug.start_with_request=yes bin/db",
+        "db:create": "@php bin/db create",
+        "db:seed": "@php bin/db seed",
+        "db:reset": "@php bin/db reset",
+        "db:generate-seed": "@php bin/generate-seed"
+    }
+}
