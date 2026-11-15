@@ -31,13 +31,13 @@ Usage: generate-seed
     
     options:
       --supermarkets=N   number of supermarkets              (default 20)
-      --products=N       number of products                  (default 1000)
+      --products=N       number of products per supermarket  (default 100)
       --coverage=F       0..1, chance a supermarket stocks a
                          given product                       (default 0.6)
       --images=F         0..1, chance a product gets an
                          image; the rest are NULL            (default 0.9)
       --seed=N           random seed; the same seed always
-                         produces the same file              (default 1)
+                         produces the same file              (default 34)
       --out=PATH         output file                         (default schema/seed.sql)
     
     images: if schema/images/<type>.jpg (or .jpeg/.png/.webp/.svg) exists, every
@@ -51,10 +51,10 @@ TXT;
 }
 
 $supermarket_count = (int)($options['supermarkets'] ?? 20);
-$product_count     = (int)($options['products'] ?? 1000);
+$product_count     = (int)($options['products'] ?? 100);
 $coverage          = (float)($options['coverage'] ?? 0.6);
 $image_chance      = (float)($options['images'] ?? 0.9);
-$random_seed       = (int)($options['seed'] ?? 1);
+$random_seed       = (int)($options['seed'] ?? 34);
 
 $cwd = getcwd();
 if ($cwd === false) {
@@ -254,14 +254,16 @@ function supermarkets(int $count, array $chains, array $towns): Generator
     }
 }
 
-/** products: names may repeat, which is allowed by the schema.
- *  all images are assumed to be coffee, my favourite drink or NULL
- *  also remembers each product's base price for the supermarket_products step */
-function products(int $count, array $brands, array $types, float $image_chance,
-                  string $image_dir, array &$base_prices): Generator
-{
-    $type_names = array_keys($types);
-
+function supermarkets_products(
+        int $supermarket_count,
+        int $products_per_supermarket,
+        array $brands,
+        array $types,
+        float $image_chance,
+        string $image_dir,
+        float $coverage,
+): Generator {
+    // check that the image exists and load it
     $file_present = is_file($image_dir . "/coffee.jpg");
 
     $image = null;
@@ -272,36 +274,37 @@ function products(int $count, array $brands, array $types, float $image_chance,
         echo "generate-seed: $image_dir/coffee.jpg does not exist\n";
     }
 
-    for ($id = 1; $id <= $count; $id++) {
-        $type = pick($type_names);
-        [$variants, $sizes, $min, $max] = $types[$type];
+    $type_names = array_keys($types);
 
-        $name  = sprintf('%s %s %s %s', pick($brands), pick($variants), $type, pick($sizes));
-        $image = $file_present && chance($image_chance) ? $image : null;
+    $id = 1;
 
-        // we are selecting this to ensure that the price ranges don't very dramatically
-        // between supermarkets
-        $base_prices[$id] = mt_rand($min, $max);
-
-        yield [$id, sql_str($name), sql_blob($image), $image !== null ? sql_str(md5($image)) : 'NULL'];
-    }
-}
-
-/** each (supermarket, product) pair appears at most once, matching the
- *  composite PRIMARY KEY; prices vary a little between supermarkets */
-function supermarket_products(int $supermarket_count, array $base_prices, float $coverage): Generator
-{
-    // supermarket_count is the number of supermarkets, and the ids are all incremented
-    // so this works, we go over every supermarket and add items according to a
-    // probability of $coverage
     for ($s = 1; $s <= $supermarket_count; $s++) {
-        foreach ($base_prices as $p => $base) {
+        for ($p = 1; $p <= $products_per_supermarket; $p++) {
+
             if (!chance($coverage)) {
                 continue;
             }
-            $price = (int)round($base * mt_rand(85, 115) / 100); // +/-15%
+
+            $type = pick($type_names);
+
+            [$variants, $sizes, $min, $max] = $types[$type];
+
+            $name  = sprintf('%s %s %s %s', pick($brands), pick($variants), $type, pick($sizes));
             $stock = mt_rand(1, 10) === 1 ? 0 : mt_rand(1, 250); // ~10% out of stock
-            yield [$s, $p, $stock, $price];
+            $price = mt_rand($min, $max); // non-realistic pricing
+            $image = $file_present && chance($image_chance) ? $image : null;
+
+            yield [
+                    $id,
+                    sql_str($name),
+                    $stock,
+                    $price,
+                    sql_blob($image),
+                    $image !== null ? sql_str(md5($image)) : 'NULL',
+                    $s /* supermarket_id */
+            ];
+
+            $id++;
         }
     }
 }
@@ -322,20 +325,29 @@ $base_prices = [];
 
 $supermarkets_count = write_inserts($fh,
         'supermarkets', ['id', 'name'],
-        supermarkets($supermarket_count, $chains, $towns));
+        supermarkets(
+                $supermarket_count,
+                $chains,
+                $towns
+        )
+);
 
 $products_count = write_inserts($fh,
-        'products', ['id', 'name', 'image', 'image_md5'],
-        products($product_count, $brands, $types, $image_chance, $cwd . '/schema/images', $base_prices));
-
-$supermarket_products_count = write_inserts($fh,
-        'supermarket_products', ['supermarket_id', 'product_id', 'stock', 'price_cents'],
-        supermarket_products($supermarket_count, $base_prices, $coverage));
+        'products', ['id', 'name', 'stock', 'price_cents', 'image', 'image_md5', 'supermarket_id'],
+        supermarkets_products(
+                $supermarket_count,
+                $product_count,
+                $brands,
+                $types,
+                $image_chance,
+                $cwd . '/schema/images',
+                $coverage
+        )
+);
 
 $counts = [
         'supermarkets' => $supermarkets_count,
         'products' => $products_count,
-        'supermarket_products' => $supermarket_products_count,
 ];
 
 fclose($fh);
