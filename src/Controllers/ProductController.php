@@ -158,6 +158,8 @@ class ProductController
     $return_search = trim((string) ($_POST['return_search'] ?? ''));
     $query = $return_search === '' ? '' : '?' . http_build_query(['search_term' => $return_search]);
 
+    // the target #product-$product_id allows us to keep track of the product when we go back
+    // and keep it highlighted.
     header("Location: /supermarkets/$supermarket_id$query#product-$product_id", true, 303);   // Post/Redirect/Get
     exit;
   }

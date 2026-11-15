@@ -1,0 +1,8 @@
+.git
+.idea
+vendor
+database
+data
+Dockerfile
+compose.yaml
+.dockerignore
