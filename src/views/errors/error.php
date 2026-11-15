@@ -4,10 +4,13 @@
  * @var ?string  $message
  */
 ?>
-
-<section>
-  <h1><?= e($status) ?></h1>
+<section class="panel message">
+  <p class="status"><?= e($status) ?></p>
   <!-- controllers pass plain text; it's escaped here, exactly once -->
-  <p><?= e(!empty($message) ? $message : 'something went wrong.') ?></p>
-  <p><a class='button button-secondary' href="/">← Back Home</a></p>
+  <h1><?= e(!empty($message) ? ucfirst($message) : 'Something went wrong.') ?></h1>
+  <div class="page-actions">
+    <!-- going back keeps what was typed in the form, so it can be fixed and resent -->
+    <a class="button button-secondary" href="javascript:history.back()">Go back</a>
+    <a class="button" href="/">Home</a>
+  </div>
 </section>

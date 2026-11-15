@@ -3,10 +3,15 @@
  * @var array{id: int, name: string}   $supermarket
  */
 ?>
+<?= breadcrumbs([
+  'Supermarkets'       => '/supermarkets',
+  $supermarket['name'] => '/supermarkets/' . $supermarket['id'],
+  'Rename'             => null,
+]) ?>
 
-<h1>Edit Supermarket</h1>
+<h1>Rename Supermarket</h1>
 
-<form method="POST" action="/supermarkets/<?= e($supermarket['id']) ?>" class="form-stack" id="edit-supermarket">
+<form method="POST" action="/supermarkets/<?= e($supermarket['id']) ?>" class="form-stack panel" id="edit-supermarket">
   <input type="hidden" name="_method" value="put" />
 
   <label for="supermarket_name">Supermarket name</label>
@@ -15,8 +20,3 @@
 
   <button type="submit">Save</button>
 </form>
-
-<div class="toolbar">
-  <a class='button button-secondary' href="/supermarkets/<?= e($supermarket['id']) ?>">← Back to <?= e($supermarket['name']) ?></a>
-  <a class='button button-secondary' href="/">← Home</a>
-</div>

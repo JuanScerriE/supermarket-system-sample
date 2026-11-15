@@ -1,22 +1,254 @@
+/* ==========================================================================
+   Supermarket Logging: one stylesheet for every page.
+   built for tablets first (touch, 768-1024px wide), and fine on desktops.
+   sections: tokens, base, layout, header, buttons, forms, toolbar,
+   cards, detail pages, small parts, utilities
+   ========================================================================== */
 
-/* ---------- shared colours: change these to re-theme everything ---------- */
+/* ---------- tokens: change these to re-theme everything ---------- */
 :root {
   --font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --accent: #2563eb;          /* blue, close to your card hover colour */
-  --accent-hover: #1d4ed8;
-  --accent-text: #ffffff;
-  --border: #cbd5e1;
+
+  --bg: #f4f6f9;              /* page background */
+  --surface: #ffffff;         /* cards, inputs, header */
+  --surface-muted: #eef2f6;   /* disabled inputs, image backgrounds */
   --text: #1e293b;
   --muted: #64748b;
-  --surface: #ffffff;
+  --border: #d5dde7;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: #e0eaff;     /* highlighted card, current nav item */
+  --accent-text: #ffffff;
   --danger: #dc2626;
   --danger-hover: #b91c1c;
-  --radius: 8px;
+  --danger-soft: #fee2e2;
+  --success: #15803d;
+  --success-soft: #dcfce7;
+
+  --radius: 10px;
+  --radius-small: 6px;
+  --shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.08);
   --focus-ring: 0 0 0 3px rgb(37 99 235 / 0.35);
+
+  /* the smallest comfortable size for a finger (Apple: 44px, Google: 48px) */
+  --tap: 48px;
+
+  /* spacing scale: use these instead of one-off values */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --header-height: 60px;
+}
+
+/* ---------- base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;   /* width includes padding and border: far easier to size things */
 }
 
 html {
-  font-family: var(--font);
+  font-family: var(--font), sans-serif;
+  /* 17px base: a bit larger than the 16px default, easier at arm's length on a tablet */
+  font-size: 1.2rem;
+  line-height: 1.5;
+  color: var(--text);
+  -webkit-text-size-adjust: 100%;   /* stop iOS enlarging text when the tablet is rotated */
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  /* no grey flash when tapping links/buttons on iOS; :active styles give feedback instead */
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3 {
+  line-height: 1.2;
+  margin-bottom: var(--space-4);
+}
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.3rem; }
+
+p { margin: 0 0 var(--space-4); }
+
+a { color: var(--accent); }
+
+img { max-width: 100%; }
+
+/* ---------- site-header ---------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding-top: max(var(--space-1), env(safe-area-inset-top));
+  padding-bottom: max(var(--space-1), env(safe-area-inset-bottom));
+}
+
+.site-header-inner {
+  min-height: var(--header-height);
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-top: 0;
+  padding-right: max(var(--space-4), env(safe-area-inset-right));
+  padding-bottom: 0;
+  padding-left: max(var(--space-4), env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.site-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+  /* HACK: this ensures that when the burger menu is open no shifting happens */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--header-height);
+}
+
+.site-nav {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.site-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-small);
+  color: var(--muted);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-nav a[aria-current="page"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* burger menu: hidden on tablets and desktops */
+.nav-toggle {
+  display: none;
+}
+
+@media (max-width: 599px) {
+  /* lets the opened nav drop onto its own row under the name and button */
+  .site-header-inner {
+    flex-wrap: wrap;
+  }
+
+  /* basis 0: the name never pushes the burger onto a new row, it just takes
+     the space that's left. min-width 0 + ellipsis: it can get narrower than its text */
+  .site-name {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* ellipsis only works on a block, not a flex container, so the 60px
+       height + centring comes from line-height here instead */
+    display: block;
+    line-height: var(--header-height);
+  }
+
+  .nav-toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    width: var(--tap);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-small);
+  }
+
+  .site-nav {
+    display: none;
+    flex-basis: 100%;            /* take the full width of the new row */
+    flex-direction: column;
+    padding-bottom: var(--space-3);
+  }
+
+  /* the button says it's open → show the nav right after it */
+  .nav-toggle[aria-expanded="true"] + .site-nav {
+    display: flex;
+  }
+
+  .site-nav a {
+    min-height: var(--tap);      /* full-width rows, easy to tap */
+  }
+}
+
+/* ---------- layout ---------- */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  /* env(safe-area-inset-*): keep clear of rounded corners / the home bar on iPads */
+  padding-top: var(--space-5);
+  padding-right: max(var(--space-4), env(safe-area-inset-right));
+  padding-bottom: max(var(--space-6), env(safe-area-inset-bottom));
+  padding-left: max(var(--space-4), env(safe-area-inset-left));
+}
+
+/* page heading with actions on the right (wraps under on narrow screens) */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.page-header h1 {
+  overflow-wrap: anywhere;   /* long product names wrap instead of widening the page */
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* ---------- breadcrumbs ---------- */
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  list-style: none;
+  /*margin: 0 0 0 var(--space-3);*/
+  margin: 0;
+  padding: 0;
+  color: var(--muted);
+}
+
+.breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);   /* tappable, even though it looks like plain text */
+  font-weight: 600;
+}
+
+.breadcrumbs li > a {
+  text-decoration: none;
+}
+
+/* the › between items */
+.breadcrumbs li + li::before {
+  content: "›";
+  margin: 0 var(--space-2);
+  color: var(--muted);
 }
 
 /* ---------- buttons ---------- */
@@ -25,35 +257,43 @@ button,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5em;
+  gap: var(--space-2);
 
-  padding: 0.6em 1.1em;
-  margin: 0.3em 0;
-  border: 1px solid transparent;
+  min-height: var(--tap);
+  padding: 0 var(--space-5);
+  border: 1px solid;
   border-radius: var(--radius);
 
   background: var(--accent);
   color: var(--accent-text);
-  font: inherit;
   font-weight: 600;
   line-height: 1.2;
+  text-align: center;
   text-decoration: none;   /* so <a class="button"> looks the same */
+  white-space: nowrap;
   cursor: pointer;
+  touch-action: manipulation;   /* no double-tap-to-zoom delay on buttons */
 
-  transition: background-color 0.15s, box-shadow 0.15s, transform 0.05s;
+  /* this is how the transition from not active to hover */
+  transition: background-color 0.15s;
 }
 
-button:hover,
-.button:hover {
-  background: var(--accent-hover);
+/* hover only for real pointers: on touch screens :hover "sticks" after a tap */
+@media (hover: hover) {
+  button:hover,
+  .button:hover {
+    background: var(--accent-hover);
+  }
 }
 
+/* pressed feedback, works for fingers too */
 button:active,
 .button:active {
-  transform: translateY(1px);   /* small "pressed" effect */
+  transform: translateY(1px);
+  filter: brightness(0.95);
 }
 
-/* only shows a ring for keyboard users, not on mouse clicks */
+/* only shows a ring for keyboard users, not on taps or clicks */
 button:focus-visible,
 .button:focus-visible {
   outline: none;
@@ -64,42 +304,70 @@ button:disabled,
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
-/* variants: <button class="button-secondary">, <button class="button-danger"> */
+/* variants: class="button button-secondary" / "button button-danger" */
 .button-secondary {
   background: var(--surface);
   color: var(--text);
   border-color: var(--border);
 }
-.button-secondary:hover {
-  background: #f1f5f9;
-}
 
 .button-danger {
   background: var(--danger);
 }
-.button-danger:hover {
-  background: var(--danger-hover);
+
+@media (hover: hover) {
+  .button-secondary:hover { background: var(--surface-muted); }
+  .button-danger:hover { background: var(--danger-hover); }
 }
 
-  /* ---------- text inputs and selects ---------- */
+/* ---------- forms ---------- */
 .input,
 input:where([type="text"], [type="search"], [type="email"],
             [type="password"], [type="number"], [type="url"]),
 select,
 textarea {
-  padding: 0.6em 0.8em;
+  max-width: 100%;
+  min-height: var(--tap);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 
   background: var(--surface);
   color: var(--text);
-  font: inherit;
-  line-height: 1.2;
+  /* 1rem (17px) on purpose: iPad Safari zooms the whole page into any input under 16px */
+  font-size: 1rem;
+  line-height: 1.3;
 
   transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type="file"] {
+  max-width: 100%;
+  min-height: var(--tap);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+/* the "Choose File" button inside a file input, styled like .button-secondary */
+input[type="file"]::file-selector-button {
+  max-width: 100%;
+  min-height: var(--tap);
+
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  background: var(--surface);
+  color: var(--text);
+
+  font-size: 1rem;
+  line-height: 1.3;
+
+  /* specific to file selector button */
+  cursor: pointer;
+  margin-right: var(--space-3);
 }
 
 .input::placeholder,
@@ -126,113 +394,61 @@ input:user-invalid {
 .input:disabled,
 input:disabled,
 select:disabled {
-  background: #f1f5f9;
+  background: var(--surface-muted);
   color: var(--muted);
   cursor: not-allowed;
 }
 
-label {
+label,
+legend {
   font-weight: 600;
   color: var(--text);
 }
 
-.cards {
-  max-width: 100%;
-  margin: 1em auto;
-
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(384px, 1fr));
-  grid-gap: 20px;
+/* bigger radio buttons / checkboxes for fingers */
+input[type="radio"],
+input[type="checkbox"] {
+  width: 1.4rem;
+  height: 1.4rem;
+  margin: 0;
+  font-size: 1rem;
+  accent-color: var(--accent);
 }
 
-.a-card {
-  padding: 10px;
-  border: 2px solid #999999;
-  border-radius: var(--radius);
-  font-size: 30px;
-
-  /*place-items: center;*/
-  /*place-content: ;*/
-  color: inherit;
-  align-items: center;
-  text-decoration: none;
-
-  display: grid;
-  grid-template-rows: max-content 1fr;
+/* turn off focus outline for radio and checkbox */
+input[type="radio"]:focus,
+input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: none;
 }
 
-.a-card > p {
-  margin: 4px 0;
-}
-
-.a-card:hover {
-  border: 2px solid #0000FF;
-  text-decoration: none;
-}
-
-.a-card:visited {
-  color: inherit;
-  text-decoration: none;
-}
-
-.a-card:active {
-  border: 2px solid #0000FF;
-  text-decoration: none;
-}
-
-/* ---------- toolbar: several forms side by side ---------- */
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;                  /* forms drop onto their own line when there isn't room */
-  align-items: center;
-  gap: 1em;
-  margin: 1em 0;
-}
-
-/* a form whose input and button sit on one line */
-.inline-form {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-  flex-wrap: wrap;
-  /*flex: 1 1 320px;   !* grow to share the row; wrap once narrower than ~320px *!*/
-  /*max-width: 480px;  !* but don't stretch across a wide screen *!*/
-}
-
-.inline-form input {
-  flex: 1;           /* the input takes the space the button doesn't */
-  min-width: 0;      /* lets the input shrink below its default width on phones */
-}
-
-.inline-form button {
-  white-space: nowrap;   /* keep "Add Supermarket" on one line */
-}
-
-/* hide visually but keep for screen readers (labels with no visible text).
-   unlike the `hidden` attribute, screen readers still announce these */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-/* ---------- a form laid out as one column: label above its input ---------- */
+/* a form laid out as one column: label above its input */
 .form-stack {
   display: flex;
   flex-direction: column;
-  gap: 0.5em;
-  max-width: 480px;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 560px;
+}
+
+/* importantly labels have top padding to space them down a bit from the rest
+ * however, this is not the case for legends which are usually the top of the
+ * fieldset or form
+ */
+.form-stack > :where(input, .stepper, .price-input, .image-picker, fieldset) + label {
+  margin-top: var(--space-3);
 }
 
 .form-stack button[type="submit"] {
   align-self: flex-start;   /* don't stretch the button to full width */
-  margin-top: 0.5em;
+  margin-top: var(--space-4);
 }
 
 .form-stack fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: none;
@@ -243,24 +459,106 @@ label {
   display: none;
 }
 
-/* radio buttons side by side, wrapping on narrow screens */
+/* radio choices as big tappable rows, side by side when there's room */
 .form-stack fieldset.choice {
-  display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
-  gap: 0.5em 1.5em;
+  gap: var(--space-2);
 }
 
 .form-stack fieldset.choice legend {
-  font-weight: 600;
-  margin-bottom: 0.5em;
+  margin-bottom: var(--space-2);
 }
 
 .form-stack fieldset.choice label {
-  font-weight: normal;
+  /* flex shrink and grow with 220px as default size */
+  flex: 1 1 220px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  min-height: var(--tap);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.form-stack fieldset.choice label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* stock stepper: [ − ] [ 12 ] [ + ]  (buttons added by index.js) */
+.stepper {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.stepper input {
+  text-align: center;
+  font-size: 1.3rem;
+  min-height: var(--tap);
+  flex-shrink: 1;
+  flex-grow: 1;
+  /* HACK: make min-width: 0 to allow shrinking to happen since we have min-width: auto by default for
+   * flex box
+   */
+  min-width: 0;
+}
+
+.stepper button {
+  text-align: center;
+  font-size: 1.3rem;
+  min-height: var(--tap);
+  flex-shrink: 0;
+  flex-basis: 64px;
+
+  padding: 0;
+  line-height: 1;
+}
+
+/* price with a fixed € in front: <div class="price-input"><span>€</span><input></div> */
+.price-input {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--space-2);
+
+}
+
+.price-input span {
   display: inline-flex;
   align-items: center;
-  gap: 0.4em;
-  cursor: pointer;
+  justify-items: center;
+
+  padding: 0 var(--space-3);
+  font-size: 1.3rem;
+  font-weight: 600;
+
+  color: var(--muted);
+}
+
+.price-input input {
+  display: inline-flex;
+  font-size: 1.3rem;
+  font-weight: 600;
+
+  /* allow this to grow and shrink */
+  flex-grow: 1;
+  flex-shrink: 1;
+
+  min-height: var(--tap);
+
+  /* hack: make min-width: 0 to allow shrinking to happen since we have min-width: auto by default for
+   * flex box
+   */
+  min-width: 0;
 }
 
 /* image preview next to its file input */
@@ -268,24 +566,286 @@ label {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1em;
+  gap: var(--space-4);
 }
 
 .image-picker img {
+  width: 100%;
+  height: 256px;
   object-fit: contain;
+  background: var(--surface-muted);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
+/* ---------- toolbar: search + main action above a list ---------- */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+/* TODO(juan): there is this effect of a shadow appearing under the search tab due to the shadow applied to the cards */
+/* stays reachable under the header while scrolling a long list */
+.toolbar-sticky {
+  position: sticky;
+  top: calc(var(--header-height) + env(safe-area-inset-top));
+  z-index: 5;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) 0;
+  background: var(--bg);
+}
+
+/* a form whose input and button sit on one line */
+.inline-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 320px;
+
+  /* HACK: this also has a min-width limit it seems which we need to turn off */
+  min-width: 0;
+}
+
+.inline-form input {
+  flex-grow: 1;
+  flex-shrink: 1;
+
+  /* HACK: make min-width: 0 to allow shrinking to happen since we have min-width: auto by default for
+   * flex box
+   */
+  min-width: 0;
+}
+
+/* ---------- cards ---------- */
+.cards {
+  display: grid;
+  /* 200px minimum: 3 columns on a portrait tablet, 4-5 in landscape */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.05s;
+}
+
+.card:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  .card:hover {
+    border-color: var(--accent);
+  }
+}
+
+.card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* the card you just edited (/supermarkets/1#product-42) */
+.card:target {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
+}
+
+.card-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;   /* every card the same height, whatever the photo's shape */
+  object-fit: contain;
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  padding: var(--space-3);
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  /* at most 2 lines, then "…", so long names don't make uneven cards */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: auto;   /* pin to the bottom of the card */
+}
+
+.card-price {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+/* text-only cards (supermarkets): big tappable tiles */
+.card-tile .card-body {
+  justify-content: center;
+  min-height: 96px;
+  padding: var(--space-4);
+}
+
+.card-tile .card-title {
+  font-size: 1.1rem;
+}
+
+/* the two big choices on the home page */
+.home-tiles {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.home-tiles .card-body {
+  min-height: 160px;
+}
+
+.home-tiles .card-title {
+  font-size: 1.5rem;
+}
+
+/* ---------- badges ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.badge-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* ---------- detail / edit pages: image left, form right ---------- */
+.detail {
+  display: grid;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (min-width: 720px) {
+  .detail {
+    grid-template-columns: minmax(200px, 280px) 1fr;
+  }
+}
+
+.detail-image {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* a white panel around forms and messages */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-5);
+}
+
+.panel > :last-child {
+  margin-bottom: 0;
+}
+
+/* delete actions, kept apart from everyday buttons so they aren't hit by accident */
+.danger-zone {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.danger-zone h2 {
+  font-size: 1rem;
+  color: var(--danger);
+}
+
+/* ---------- small parts ---------- */
 .hint {
   color: var(--muted);
   margin: 0;
 }
 
-.flex-col {
-  flex-direction: column;
+.count {
+  color: var(--muted);
+  margin: 0 0 var(--space-3);
 }
 
-.flex-row {
-  flex-direction: row;
+.empty-state {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* confirmation / error pages */
+.message {
+  max-width: 560px;
+  margin: var(--space-6) auto;
+  text-align: center;
+}
+
+.message .status {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+}
+
+.message .page-actions {
+  justify-content: center;
+}
+
+/* ---------- utilities ---------- */
+
+/* hide visually but keep for screen readers (labels with no visible text).
+   unlike the `hidden` attribute, screen readers still announce these */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

@@ -1,10 +1,12 @@
 <?php
 /**
- * @var array{id: int, name: string}|null   $product
+ * @var array{id: int, name: string}   $product
  */
 ?>
-
-<section>
-  <h1>Product <?= e($product['name'])?> with ID <?= e($product['id'])?> has been deleted!</h1>
-  <p><a class='button button-secondary' href="/">← Back Home</a></p>
+<section class="panel message">
+  <h1><?= e($product['name']) ?> has been deleted</h1>
+  <p class="hint">It was also removed from every supermarket that stocked it.</p>
+  <div class="page-actions">
+    <a class="button" href="/products">Back to products</a>
+  </div>
 </section>

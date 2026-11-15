@@ -1,35 +1,29 @@
 /**
  * shrink images in the browser before they are uploaded.
- *
- * opt in on any file input:
- *   <input type="file" name="product_image_file" accept="image/jpeg, image/png, image/webp"
- *          data-resize-max="512"            longest side in px (keep in sync with the server)
- *          data-preview="#product_preview"> optional <img> to show the picked image in
- *
- * when a file is picked, it is redrawn on a <canvas> at most data-resize-max
- * pixels wide/high, and the smaller copy replaces the original in the input.
- * the form then submits as usual, so the server code doesn't change.
- *
- * why: phone photos are often 3-10 MB, over PHP's upload_max_filesize (2M) and
- * post_max_size (8M). an 800x600-ish JPEG is ~100 KB, so uploads are faster
- * and no longer rejected. the server still checks and resizes everything; this
- * is only a convenience, and if anything fails here the original file is sent.
  */
+
+// we are putting all of this in a closure to make sure that it is scoped,so constants like JPEG_QUALITY
+// don't leak out into the global namespace
 (() => {
-  // file extensions for the formats the server accepts
-  const EXTENSIONS = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-  const JPEG_QUALITY = 0.85; // 0-1; 0.85 looks the same as the original at a fraction of the size
+  const JPEG_QUALITY = 0.85;
 
   document.querySelectorAll('input[type="file"][data-resize-max]').forEach((input) => {
+
+    /* https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dataset#in_javascript, gives an
+     * explanation as to how to use the data- elements in the browser
+     */
     const max_size = Number(input.dataset.resizeMax);
     const preview = input.dataset.preview ? document.querySelector(input.dataset.preview) : null;
-    const original_preview_src = preview?.src; // to put back if the selection is cleared
+
+    // useful for when we actually no longer an image
+    const original_preview_src = preview?.src;
 
     input.addEventListener('change', async () => {
       const file = input.files[0];
 
       if (!file) {
         if (preview) preview.src = original_preview_src;
+
         return;
       }
 
@@ -44,6 +38,7 @@
           // an <input type="file">'s files can't be edited directly, but can be
           // replaced with a new FileList built through DataTransfer.
           // (assigning .files does not fire "change" again, so no loop)
+
           const transfer = new DataTransfer();
           transfer.items.add(resized);
           input.files = transfer.files;
@@ -80,22 +75,31 @@
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(bitmap.width * scale);
     canvas.height = Math.round(bitmap.height * scale);
+    // refer to https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage
+    // and specifically dWidth and dHeight, using this allows the product to be scaled
     canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close(); // free the full-size image's memory straight away
 
-    // keep the format (PNG keeps transparency); anything else becomes JPEG.
-    // a browser that can't encode WebP (older Safari) silently gives PNG,
-    // which the server also accepts
-    const wanted_type = EXTENSIONS[file.type] ? file.type : 'image/jpeg';
+    // we are always encoding as a JPEG
+    /** @type {Blob} */
     const blob = await new Promise((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('canvas.toBlob failed'))), wanted_type, JPEG_QUALITY),
+      canvas.toBlob(
+        (blob) => {
+          (blob ? resolve(blob) : reject(new Error('canvas.toBlob failed')))
+        },
+        'image/jpeg',
+        JPEG_QUALITY
+      ),
     );
 
-    // name it after what it actually is now, e.g. "IMG_1234.jpg"
-    const base_name = file.name.replace(/\.[^.]+$/, '');
-    return new File([blob], `${base_name}.${EXTENSIONS[blob.type] ?? 'jpg'}`, {
-      type: blob.type,
-      lastModified: Date.now(),
-    });
+    // if the name is "IMAGE.png" strip the .png
+    const base_name = file.name.replace(/\.[^.]+$/, ''); return new File(
+      [blob],
+      `${base_name}.jpg`,
+      {
+        type: blob.type,
+        lastModified: Date.now(),
+      }
+    );
   }
 })();

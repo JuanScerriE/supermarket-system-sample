@@ -10,11 +10,16 @@
 // with nothing left to pick, start on "new product"
 $default_mode = $products === [] ? 'new' : 'existing';
 ?>
+<?= breadcrumbs([
+  'Supermarkets'       => '/supermarkets',
+  $supermarket['name'] => '/supermarkets/' . $supermarket['id'],
+  'Add product'        => null,
+]) ?>
 
 <h1>Add Product to <?= e($supermarket['name']) ?></h1>
 
 <form method="POST" action="/api/supermarkets/<?= e($supermarket['id']) ?>/products/create"
-      enctype="multipart/form-data" class="form-stack" id="add-supermarket-product">
+      enctype="multipart/form-data" class="form-stack panel" id="add-supermarket-product">
 
   <fieldset class="choice">
     <legend>Product</legend>
@@ -32,7 +37,7 @@ $default_mode = $products === [] ? 'new' : 'existing';
 
   <!-- the section that isn't chosen is `disabled`: its fields are skipped
        by validation and not sent with the form -->
-  <fieldset id="existing-product-fields" class="form-stack" <?= $default_mode !== 'existing' ? 'disabled' : '' ?>>
+  <fieldset id="existing-product-fields" <?= $default_mode !== 'existing' ? 'disabled' : '' ?>>
     <label for="existing_product">Search products</label>
     <input type="text" list="product_options" id="existing_product" name="existing_product"
            placeholder="Start typing…" autocomplete="off" required>
@@ -47,11 +52,11 @@ $default_mode = $products === [] ? 'new' : 'existing';
     <?php endif; ?>
   </fieldset>
 
-  <fieldset id="new-product-fields" class="form-stack" <?= $default_mode !== 'new' ? 'disabled' : '' ?>>
+  <fieldset id="new-product-fields" <?= $default_mode !== 'new' ? 'disabled' : '' ?>>
     <label for="product_name">Product name</label>
     <input type="text" id="product_name" name="product_name" placeholder="e.g. Coca Cola 250ml" required>
 
-    <label for="product_image_file">Product image (optional)</label>
+    <label for="product_image_file">Image (optional)</label>
     <div class="image-picker">
       <img id="product_preview" class="product-image" width="128" height="128"
            alt="" src="/assets/no_image_available.jpg">
@@ -62,21 +67,20 @@ $default_mode = $products === [] ? 'new' : 'existing';
   </fieldset>
 
   <label for="product_stock">Stock</label>
-  <input type="number" id="product_stock" name="product_stock" min="0" step="1" value="0" required>
+  <input type="number" id="product_stock" name="product_stock" min="0" step="1" inputmode="numeric"
+         value="0" required data-stepper>
 
-  <label for="product_price">Price (€)</label>
-  <!-- inputmode gives phones a number keypad; pattern matches what the server accepts -->
-  <input type="text" id="product_price" name="product_price" inputmode="decimal"
-         pattern="\d+([.,]\d{2})?" title="A number, or a number with 2 decimals, e.g. 1 or 1.99"
-         placeholder="1.99" required>
+  <label for="product_price">Price</label>
+  <div class="price-input">
+    <span aria-hidden="true">€</span>
+    <!-- inputmode gives a number keypad; pattern matches what the server accepts -->
+    <input type="text" id="product_price" name="product_price" inputmode="decimal"
+           pattern="\d+([.,]\d{2})?" title="A number, or a number with 2 decimals, e.g. 1 or 1.99"
+           placeholder="1.99" required>
+  </div>
 
   <button type="submit">Add Product</button>
 </form>
-
-<div class="toolbar">
-  <a class='button button-secondary' href="/supermarkets/<?= e($supermarket['id']) ?>">← Back to <?= e($supermarket['name']) ?></a>
-  <a class='button button-secondary' href="/">← Home</a>
-</div>
 
 <script>
   {
@@ -104,6 +108,3 @@ $default_mode = $products === [] ? 'new' : 'existing';
     });
   }
 </script>
-
-<!-- shrinks the picked image in the browser before upload (see the file for details) -->
-<script src="/js/image-resize.js" defer></script>

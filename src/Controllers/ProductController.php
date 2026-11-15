@@ -152,7 +152,13 @@ class ProductController
       abort(404, 'the combination of supermarket with ID ' . $supermarket_id . ' and product with ID ' . $product_id . ' does not exist!');
     }
 
-    header("Location: /supermarkets/$supermarket_id/products/$product_id", true, 303);   // Post/Redirect/Get
+    // back to the supermarket's list (with the same search, if there was one)
+    // rather than staying on this page, so staff can go straight to the next
+    // product. #product-{id} scrolls to the card just edited and highlights it
+    $return_search = trim((string) ($_POST['return_search'] ?? ''));
+    $query = $return_search === '' ? '' : '?' . http_build_query(['search_term' => $return_search]);
+
+    header("Location: /supermarkets/$supermarket_id$query#product-$product_id", true, 303);   // Post/Redirect/Get
     exit;
   }
 

@@ -49,10 +49,53 @@ function config(string $key, mixed $default = null): mixed
   return $GLOBALS['config'][$key] ?? $default;
 }
 
+/**
+ * a price as a plain number for form inputs: 150 → "1.50" (already escaped).
+ * for showing a price to people, use format_price() instead.
+ */
 function from_cents_to_euro(int $cents): string {
   $price = intval($cents) / 100.0;
 
   return e(sprintf("%.02f", $price));
+}
+
+/** a price for display: 150 → "€1.50" (already escaped) */
+function format_price(int $cents): string
+{
+  return e('€' . number_format($cents / 100, 2));
+}
+
+/**
+ * render a breadcrumb trail; the last item is the current page.
+ *
+ * breadcrumbs(['Supermarkets' => '/supermarkets', 'Lidl Valletta' => null])
+ *
+ * @param array<string, string|null> $items label => link (null = not a link)
+ */
+function breadcrumbs(array $items): string
+{
+  $parts = [];
+  foreach ($items as $label => $url) {
+    // (string): PHP turns a key like "123" into the int 123, so convert it back
+    $label = e((string) $label);
+    $parts[] = $url === null
+      ? "<li aria-current=\"page\">$label</li>"
+      : '<li><a href="' . e($url) . "\">$label</a></li>";
+  }
+
+  return '<nav class="breadcrumbs" aria-label="breadcrumb"><ol>' . implode('', $parts) . '</ol></nav>';
+}
+
+/**
+ * a header navigation link, marked as current when the URL is in its section
+ * (e.g. /supermarkets/3/products/7 is inside "Supermarkets").
+ */
+function nav_link(string $url, string $label): string
+{
+  $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+  $current = $url === '/' ? $path === '/' : str_starts_with($path, $url);
+
+  return '<a href="' . e($url) . '"' . ($current ? ' aria-current="page"' : '') . '>' . e($label) . '</a>';
 }
 
 
