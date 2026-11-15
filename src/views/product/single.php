@@ -10,7 +10,7 @@
 <h1><?= e($product['name']) ?></h1>
 
 <div class="detail">
-  <img id="product_preview" class="detail-image product-image" width="280" height="280"
+  <img id="product_preview" class="detail-image product-image" width="256" height="256"
        alt="Image of <?= e($product['name']) ?>" src="/products/<?= e($product['id']) ?>/image">
 
   <form method="POST" action="/products/<?= e($product['id']) ?>" enctype="multipart/form-data"
@@ -30,10 +30,9 @@
 </div>
 
 <section class="danger-zone">
-  <h2>Delete product</h2>
   <form method="POST" action="/products/<?= e($product['id']) ?>" id="delete-product"
         data-confirm="Delete <?= e($product['name']) ?>? It will be removed from every supermarket too.">
     <input type="hidden" name="_method" value="delete" />
-    <button class="button button-danger" type="submit">Delete <?= e($product['name']) ?></button>
+    <button class="button button-danger" type="submit">Delete product</button>
   </form>
 </section>

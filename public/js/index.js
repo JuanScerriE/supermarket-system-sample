@@ -2,17 +2,6 @@
 // each part is opt-in through an attribute in the HTML, and every page still
 // works without JavaScript; this only makes things nicer.
 
-// ---------- data-auto-submit: submit as soon as a <select> changes ----------
-// so the user doesn't have to press the button. without JavaScript the
-// button is still there and the form works the same way.
-document.querySelectorAll('form[data-auto-submit]').forEach((form) => {
-  form.addEventListener('change', (event) => {
-    if (event.target instanceof HTMLSelectElement) {
-      form.requestSubmit(); // unlike submit(), this runs validation (e.g. required)
-    }
-  });
-});
-
 // ---------- .product-image: show the placeholder if an image fails to load ----------
 // the server already redirects products without an image to the placeholder;
 // this covers anything else (server error, connection dropped...)
@@ -65,6 +54,7 @@ document.querySelectorAll('input[type="number"][data-stepper]').forEach((input) 
       if (input.value === '' || Number.isNaN(input.valueAsNumber)) input.value = '0';
       // stepUp/stepDown respect min="0" and step, so stock never goes negative
       step > 0 ? input.stepUp() : input.stepDown();
+      // we are dispatching events as though we actually changed the value
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
     });

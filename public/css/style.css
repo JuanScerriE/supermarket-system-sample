@@ -54,7 +54,6 @@
 
 html {
   font-family: var(--font), sans-serif;
-  /* 17px base: a bit larger than the 16px default, easier at arm's length on a tablet */
   font-size: 1.2rem;
   line-height: 1.5;
   color: var(--text);
@@ -145,7 +144,7 @@ img { max-width: 100%; }
   display: none;
 }
 
-@media (max-width: 599px) {
+@media (max-width: 699px) {
   /* lets the opened nav drop onto its own row under the name and button */
   .site-header-inner {
     flex-wrap: wrap;
@@ -233,15 +232,16 @@ img { max-width: 100%; }
   color: var(--muted);
 }
 
+/* this only effects the plain text at the very end */
 .breadcrumbs li {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap);   /* tappable, even though it looks like plain text */
-  font-weight: 600;
 }
 
 .breadcrumbs li > a {
   text-decoration: none;
+  font-weight: 600;
 }
 
 /* the › between items */
@@ -260,9 +260,14 @@ button,
   gap: var(--space-2);
 
   min-height: var(--tap);
-  padding: 0 var(--space-5);
-  border: 1px solid;
+  padding: var(--space-1) var(--space-5);
+  border: 1px solid transparent;
   border-radius: var(--radius);
+
+  /* controls in a form do not inherit the font, as such we have
+   * to explicitly ask it to do so.
+   */
+  font: inherit;
 
   background: var(--accent);
   color: var(--accent-text);
@@ -329,14 +334,16 @@ input:where([type="text"], [type="search"], [type="email"],
 select,
 textarea {
   max-width: 100%;
+  min-width: 0; /* HACK: to allow proper shrinking */
   min-height: var(--tap);
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 
+  font: inherit;
+
   background: var(--surface);
   color: var(--text);
-  /* 1rem (17px) on purpose: iPad Safari zooms the whole page into any input under 16px */
   font-size: 1rem;
   line-height: 1.3;
 
@@ -346,8 +353,10 @@ textarea {
 input[type="file"] {
   max-width: 100%;
   min-height: var(--tap);
-  font-size: 1rem;
+  /*font-size: 1rem;*/
   line-height: 1.3;
+
+  font: inherit;
 }
 
 /* the "Choose File" button inside a file input, styled like .button-secondary */
@@ -415,12 +424,12 @@ input[type="checkbox"] {
   accent-color: var(--accent);
 }
 
-/* turn off focus outline for radio and checkbox */
-input[type="radio"]:focus,
-input[type="checkbox"]:focus {
-  outline: none;
-  box-shadow: none;
-}
+/*!* turn off focus outline for radio and checkbox *!*/
+/*input[type="radio"]:focus,*/
+/*input[type="checkbox"]:focus {*/
+/*  !*outline: none;*!*/
+/*  !*box-shadow: none;*!*/
+/*}*/
 
 /* a form laid out as one column: label above its input */
 .form-stack {
@@ -428,7 +437,7 @@ input[type="checkbox"]:focus {
   flex-direction: column;
   gap: var(--space-2);
   width: 100%;
-  max-width: 560px;
+  min-width: 0; /* HACK: to allow proper shrinking */
 }
 
 /* importantly labels have top padding to space them down a bit from the rest
@@ -463,7 +472,6 @@ input[type="checkbox"]:focus {
 .form-stack fieldset.choice {
   flex-direction: row;
   flex-wrap: wrap;
-  gap: var(--space-2);
 }
 
 .form-stack fieldset.choice legend {
@@ -535,7 +543,6 @@ input[type="checkbox"]:focus {
 .price-input span {
   display: inline-flex;
   align-items: center;
-  justify-items: center;
 
   padding: 0 var(--space-3);
   font-size: 1.3rem;
@@ -545,7 +552,6 @@ input[type="checkbox"]:focus {
 }
 
 .price-input input {
-  display: inline-flex;
   font-size: 1.3rem;
   font-weight: 600;
 
@@ -591,7 +597,13 @@ input[type="checkbox"]:focus {
 /* stays reachable under the header while scrolling a long list */
 .toolbar-sticky {
   position: sticky;
-  top: calc(var(--header-height) + env(safe-area-inset-top));
+  /* this should be the offset from the top site nav bar */
+  top: calc(
+    var(--header-height) +
+    max(var(--space-1), env(safe-area-inset-top)) +
+    max(var(--space-1), env(safe-area-inset-bottom)) +
+    1px
+  );
   z-index: 5;
   margin: 0 0 var(--space-4);
   padding: var(--space-3) 0;
@@ -675,7 +687,7 @@ input[type="checkbox"]:focus {
 .card-image {
   display: block;
   width: 100%;
-  /*height: auto;*/
+  height: auto;
   min-height: 256px;
   aspect-ratio: 1;   /* every card the same height, whatever the photo's shape */
   object-fit: contain;
@@ -718,10 +730,10 @@ input[type="checkbox"]:focus {
   font-weight: 700;
 }
 
-/* text-only cards (supermarkets): big tappable tiles */
+/* we use .card-tile for text only cards that do not contain an image */
 .card-tile .card-body {
   justify-content: center;
-  min-height: 96px;
+  min-height: calc(2 * var(--tap));
   padding: var(--space-4);
 }
 
@@ -729,13 +741,10 @@ input[type="checkbox"]:focus {
   font-size: 1.1rem;
 }
 
-/* the two big choices on the home page */
-.home-tiles {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-}
+/* .home-tiles is the class we use for the home tiles themselves */
 
 .home-tiles .card-body {
-  min-height: 160px;
+  min-height: calc(4 * var(--tap));
 }
 
 .home-tiles .card-title {
@@ -746,8 +755,8 @@ input[type="checkbox"]:focus {
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.15em 0.6em;
-  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius);
   font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
@@ -761,27 +770,38 @@ input[type="checkbox"]:focus {
 }
 
 /* ---------- detail / edit pages: image left, form right ---------- */
+
 .detail {
-  display: grid;
+  display: flex;
   gap: var(--space-5);
   align-items: start;
-}
 
-@media (min-width: 720px) {
-  .detail {
-    grid-template-columns: minmax(200px, 280px) 1fr;
+  flex-direction: row;
+
+  @media (max-width: 699px) {
+    flex-direction: column;
   }
 }
 
+/*@media (min-width: 720px) {*/
+/*  .detail {*/
+/*    grid-template-columns: minmax(200px, 280px) 1fr;*/
+/*  }*/
+/*}*/
+
 .detail-image {
-  width: 100%;
-  max-width: 280px;
-  height: auto;
   aspect-ratio: 1;
   object-fit: contain;
-  background: var(--surface);
+  background: var(--surface-muted);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+
+  flex-shrink: 2;
+  flex-grow: 1;
+  width: 100%;
+  height: auto;
+  min-width: 256px;
+  min-height: 256px;
 }
 
 /* a white panel around forms and messages */
@@ -804,6 +824,11 @@ input[type="checkbox"]:focus {
   border-top: 1px solid var(--border);
 }
 
+/* allow wrapping for whitespace */
+.danger-zone .button {
+  white-space: normal;
+}
+
 .danger-zone h2 {
   font-size: 1rem;
   color: var(--danger);
@@ -813,6 +838,11 @@ input[type="checkbox"]:focus {
 .hint {
   color: var(--muted);
   margin: 0;
+}
+
+/* add some padding in the delete pages  */
+.message .hint {
+  margin-bottom: var(--space-3);
 }
 
 .count {

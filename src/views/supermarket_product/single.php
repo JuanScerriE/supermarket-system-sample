@@ -50,10 +50,9 @@ $action = '/supermarkets/' . $product['supermarket_id'] . '/products/' . $produc
 </div>
 
 <section class="danger-zone">
-  <h2>Remove from <?= e($product['supermarket_name']) ?></h2>
   <form method="POST" action="<?= e($action) ?>" id="delete-supermarket-product"
         data-confirm="Remove <?= e($product['product_name']) ?> from <?= e($product['supermarket_name']) ?>? The product itself is kept.">
     <input type="hidden" name="_method" value="delete" />
-    <button class="button button-danger" type="submit">Remove product</button>
+    <button class="button button-danger" type="submit">Remove product from supermarket</button>
   </form>
 </section>

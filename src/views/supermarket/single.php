@@ -20,6 +20,11 @@ $query = $search_term === '' ? '' : '?' . http_build_query(['search_term' => $se
   <div class="page-actions">
     <a class="button" href="/supermarkets/<?= e($supermarket['id']) ?>/products/create">Add Product</a>
     <a class="button button-secondary" href="/supermarkets/<?= e($supermarket['id']) ?>/edit">Rename</a>
+    <form method="POST" action="/supermarkets/<?= e($supermarket['id']) ?>" id="delete-supermarket"
+          data-confirm="Delete <?= e($supermarket['name']) ?> and its stock and prices? This can't be undone.">
+      <input type="hidden" name="_method" value="delete" />
+      <button class="button button-danger" type="submit">Delete</button>
+    </form>
   </div>
 </div>
 
@@ -65,12 +70,3 @@ $query = $search_term === '' ? '' : '?' . http_build_query(['search_term' => $se
     <?php endforeach; ?>
   </ul>
 <?php endif; ?>
-
-<section class="danger-zone">
-  <h2>Delete supermarket</h2>
-  <form method="POST" action="/supermarkets/<?= e($supermarket['id']) ?>" id="delete-supermarket"
-        data-confirm="Delete <?= e($supermarket['name']) ?> and its stock and prices? This can't be undone.">
-    <input type="hidden" name="_method" value="delete" />
-    <button class="button button-danger" type="submit">Delete <?= e($supermarket['name']) ?></button>
-  </form>
-</section>
