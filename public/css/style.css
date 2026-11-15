@@ -72,10 +72,21 @@ h1, h2, h3 {
   margin-bottom: var(--space-4);
 }
 
-h1 { font-size: 1.75rem; }
-h2 { font-size: 1.3rem; }
+h1 {
+  font-size: 1.75rem;
+  line-break: anywhere;
+}
 
-p { margin: 0 0 var(--space-4); }
+h2 {
+  font-size: 1.3rem;
+  line-break: anywhere;
+}
+
+p {
+  margin: 0 0 var(--space-4);
+  line-break: anywhere;
+}
+
 
 a { color: var(--accent); }
 
@@ -237,6 +248,9 @@ img { max-width: 100%; }
   display: inline-flex;
   align-items: center;
   min-height: var(--tap);   /* tappable, even though it looks like plain text */
+
+  /* add line breaks anywhere in li, this is useful for breadcrumbs with long titles */
+  line-break: anywhere;
 }
 
 .breadcrumbs li > a {
@@ -584,6 +598,49 @@ input[type="checkbox"] {
   border-radius: var(--radius);
 }
 
+.image-toolbar {
+  width: 100%;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* this is to ensure that when wrapping happens it still looks good */
+.image-toolbar :where(input, button) {
+  margin-bottom: var(--space-2);
+}
+
+
+.photo-modal {
+  overflow: hidden;
+  width: 90%;
+  height: 90%;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+/* only while open: a closed <dialog> relies on the browser's display: none,
+   so setting display on .photo-modal itself would keep it always visible */
+.photo-modal[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.photo-modal .camera-view {
+  display: block;
+  background: var(--surface-muted);
+  width: 100%;
+  /* take whatever height the toolbar leaves, instead of 100% of the dialog */
+  flex: 1;
+  min-height: 0;        /* flex items won't shrink below their content size without this */
+  object-fit: contain;  /* letterbox the camera image instead of stretching or cropping it */
+}
+
+.photo-modal .toolbar {
+  margin-bottom: 0;
+}
+
 /* ---------- toolbar: search + main action above a list ---------- */
 .toolbar {
   display: flex;
@@ -710,9 +767,6 @@ input[type="checkbox"] {
   font-weight: 600;
   line-height: 1.3;
   /* at most 2 lines, then "…", so long names don't make uneven cards */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 

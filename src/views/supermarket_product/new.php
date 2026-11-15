@@ -44,7 +44,7 @@ $default_mode = $products === [] ? 'new' : 'existing';
     <!-- names aren't unique, so each option ends in its id: "Name (#42)" -->
     <datalist id="product_options">
       <?php foreach ($products as $product): ?>
-        <option value="<?= e($product['name']) ?> (#<?= e($product['id']) ?>)"></option>
+        <option data-product-id="<?= e($product['id']) ?>" value="<?= e($product['name']) ?> (#<?= e($product['id']) ?>)"></option>
       <?php endforeach; ?>
     </datalist>
     <?php if ($products === []): ?>
@@ -60,9 +60,14 @@ $default_mode = $products === [] ? 'new' : 'existing';
     <div class="image-picker">
       <img id="product_preview" class="product-image" width="128" height="128"
            alt="" src="/assets/no_image_available.jpg">
-      <input type="file" id="product_image_file" name="product_image_file"
+      <div class="image-toolbar">
+        <input type="file" id="product_image_file" name="product_image_file"
              accept="image/jpeg, image/png, image/webp"
              data-resize-max="512" data-preview="#product_preview">
+        <button type="button" id="take-photo">
+          Use camera
+        </button>
+      </div>
     </div>
   </fieldset>
 
@@ -82,29 +87,46 @@ $default_mode = $products === [] ? 'new' : 'existing';
   <button type="submit">Add Product</button>
 </form>
 
+<dialog id="photo-modal" class="photo-modal">
+  <video class="camera-view" id="camera" playsinline muted></video>
+  <div class="toolbar">
+    <button class="button button-danger" id="photo-modal-close">Close</button>
+    <button type="button" id="camera-snap">Take Photo</button>
+  </div>
+</dialog>
+
 <script>
-  {
-    const form = document.querySelector('#add-supermarket-product');
-    const sections = {
-      existing: document.querySelector('#existing-product-fields'),
-      new: document.querySelector('#new-product-fields'),
-    };
+  const form = document.querySelector('#add-supermarket-product');
 
-    // switching the radio enables one section and disables the other
-    // (CSS hides the disabled one, see .form-stack fieldset:disabled)
-    form.addEventListener('change', (event) => {
-      if (event.target.name !== 'product_mode') return;
+  const sections = {
+    existing: document.querySelector('#existing-product-fields'),
+    new: document.querySelector('#new-product-fields'),
+  };
 
-      for (const [mode, section] of Object.entries(sections)) {
-        section.disabled = mode !== event.target.value;
-      }
-    });
+  // switching the radio enables one section and disables the other
+  // (CSS hides the disabled one, see .form-stack fieldset:disabled)
+  form.addEventListener('change', (event) => {
+    if (event.target.name !== 'product_mode') return;
 
-    // only accept text that matches one of the listed products
-    const picker = document.querySelector('#existing_product');
-    picker.addEventListener('input', () => {
-      const match = [...picker.list.options].some((option) => option.value === picker.value);
-      picker.setCustomValidity(match ? '' : 'Pick a product from the list.');
-    });
-  }
+    for (const [mode, section] of Object.entries(sections)) {
+      section.disabled = mode !== event.target.value;
+    }
+  });
+
+  const picker = document.querySelector('#existing_product');
+
+  // TODO(juan): this is not a good way of doing things honestly
+  // form.addEventListener('submit', (event) => {
+  //   const option = [...picker.list.options].find((option) => {
+  //     return option.value === picker.value;
+  //   });
+  //
+  //   // get the value of the product_id of the selected value instead of the full name
+  //   picker.value = option.dataset.productId;
+  // });
+
+  picker.addEventListener('input', () => {
+    const match = [...picker.list.options].some((option) => option.value === picker.value);
+    picker.setCustomValidity(match ? '' : 'Pick a product from the list.');
+  });
 </script>

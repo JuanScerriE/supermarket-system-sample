@@ -92,6 +92,9 @@ class ProductController
       // product names aren't unique, so the id at the end is what counts
       $picked = trim((string) ($_POST['existing_product'] ?? ''));
 
+      // TODO(juan): this is not a great way of going about it but
+      // works when considering the constraints caused by datalist, SSR
+      // and fetch not being very amenable to SSR
       if (!preg_match('/\(#(\d+)\)$/', $picked, $matches)) {
         abort(400, 'pick a product from the list');
       }

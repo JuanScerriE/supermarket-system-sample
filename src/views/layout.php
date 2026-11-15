@@ -20,8 +20,8 @@
 
     <!-- defer: download now, run after the page is parsed, so they can find elements -->
     <script src="/js/index.js" defer></script>
-<!--    <script type='module' src="/js/image-resize.js" defer></script>-->
     <script src="/js/image-resize.js" defer></script>
+    <script src="/js/camera.js" defer></script>
   </head>
   <body>
     <header class="site-header">
