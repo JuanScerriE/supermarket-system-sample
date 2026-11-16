@@ -12,20 +12,13 @@ function view(string $template, array $data = []): void
   // output buffering: capture the template's output into a string
   // instead of sending it straight to the browser...
   ob_start();
-  require __DIR__ . "/views/{$template}.php";
+  require __DIR__ . "/Views/{$template}.php";
   $content = ob_get_clean();
 
   // ...then print it inside the layout, which echoes $content.
-  require __DIR__ . '/views/layout.php';
+  require __DIR__ . '/Views/layout.php';
 }
 
-/**
- * escape a value for safe output in HTML.
- *
- * THE most important security habit in PHP: always escape user data before
- * echoing it. Otherwise, someone could save a note containing
- * <script>...</script> and it would run in other people's browsers (XSS).
- */
 function e(mixed $value): string
 {
   return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');

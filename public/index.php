@@ -4,7 +4,7 @@
  * FRONT CONTROLLER — the single entry point for every request.
  *
  * Only the /public directory is exposed to the web server, so code in
- * /src, /views, config.php and the database file can't be downloaded
+ * /src, /Views, config.php and the database file can't be downloaded
  * directly. Every URL (e.g. /products/5) is sent to this file, and the
  * Router decides which controller method handles it.
  *
@@ -49,45 +49,34 @@ if ($post_max_size > 0 && $content_length > $post_max_size) {
 }
 
 use App\Router;
-use App\Controllers\NewProductController;
+use App\Controllers\ProductController;
 use App\Controllers\SupermarketController;
 
 $router = new Router();
 
-// ---- Route table: HTTP method, URL pattern, [ControllerClass, 'method'] ----
-// {name} is a placeholder for a number; its value is passed to the controller method.
-// convention: GET /things/create shows the form, POST /api/things/create handles it.
 $router->get('/', [SupermarketController::class, 'home']);
 
-// for getting images
-$router->get('/products/{id}/image', [NewProductController::class, 'product_image']);
-
-//$router->get('/products', [ProductController::class, 'products']);
-//$router->get('/products/{id}', [ProductController::class, 'product_by_id']);
+// list of supermarkets
 $router->get('/supermarkets', [SupermarketController::class, 'supermarkets']);
+// specific supermarket
 $router->get('/supermarkets/{id}', [SupermarketController::class, 'supermarket_by_id']);
+
 $router->get('/supermarkets/{id}/edit', [SupermarketController::class, 'update_view']);
-$router->get('/supermarkets/{supermarket_id}/products/{product_id}', [NewProductController::class, 'read']);
-
-// product create
-//$router->get('/products/create', [ProductController::class, 'create_product_view']);
-//$router->post('/api/products/create', [ProductController::class, 'create_product']);
-
-// supermarket create
+$router->put('/supermarkets/{id}', [SupermarketController::class, 'update']);
 $router->get('/supermarkets/create', [SupermarketController::class, 'create_view']);
 $router->post('/api/supermarkets/create', [SupermarketController::class, 'create']);
-
-// supermarket product create
-$router->get('/supermarkets/{supermarket_id}/products/create', [NewProductController::class, 'create_view']);
-$router->post('/api/supermarkets/{supermarket_id}/products/create', [NewProductController::class, 'create']);
-
-//$router->put('/products/{id}', [ProductController::class, 'update_product']);
-$router->put('/supermarkets/{supermarket_id}/products/{product_id}', [NewProductController::class, 'update']);
-$router->put('/supermarkets/{id}', [SupermarketController::class, 'update']);
-
-//$router->delete('/products/{id}', [ProductController::class, 'delete_product']);
-$router->delete('/supermarkets/{supermarket_id}/products/{product_id}', [NewProductController::class, 'delete']);
 $router->delete('/supermarkets/{id}', [SupermarketController::class, 'delete']);
+
+// for getting images
+$router->get('/products/{id}/image', [ProductController::class, 'product_image']);
+
+// view the product under the supermarket
+$router->get('/supermarkets/{supermarket_id}/products/{product_id}', [ProductController::class, 'read']);
+
+$router->put('/supermarkets/{supermarket_id}/products/{product_id}', [ProductController::class, 'update']);
+$router->get('/supermarkets/{supermarket_id}/products/create', [ProductController::class, 'create_view']);
+$router->post('/api/supermarkets/{supermarket_id}/products/create', [ProductController::class, 'create']);
+$router->delete('/supermarkets/{supermarket_id}/products/{product_id}', [ProductController::class, 'delete']);
 
 $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
 

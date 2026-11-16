@@ -110,9 +110,7 @@ class Supermarket
    */
   public static function find_by_name(string $name): array
   {
-    // Database::query() only protects against SQL injection; % and _ in $name
-    // would still act as LIKE wildcards, so escape them first. without this,
-    // searching for "%" returns every supermarket
+    // escape wildcards like % and _
     $escaped = Database::escape_like($name);
 
     // in SQLite, LIKE is case-insensitive for ASCII letters (a-z), so
@@ -124,16 +122,13 @@ class Supermarket
   }
 
   /**
-   * delete a supermarket; its supermarket_products rows are removed too
-   * (ON DELETE CASCADE)
+   * delete a supermarket; its products rows are removed too due to on delete cascade
    *
    * @param int $id the id of the supermarket
    *
    * @return bool true if a supermarket was deleted, false if no supermarket has this id
    *
    * @throws Throwable
-   *
-   * @example delete(10)
    */
   public static function delete(int $id): bool
   {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\Supermarket;
-use App\Models\SupermarketProduct;
+use App\Models\Product;
 use PDOException;
 
 class SupermarketController
@@ -42,9 +42,9 @@ class SupermarketController
     $search_term = trim((string) ($_GET['search_term'] ?? ''));
 
     if ($search_term === '') {
-      $products = SupermarketProduct::get_by_supermarket($id);
+      $products = Product::get_by_supermarket($id);
     } else {
-      $products = SupermarketProduct::get_by_supermarket_and_name($id, $search_term);
+      $products = Product::get_by_supermarket_and_name($id, $search_term);
     }
 
     view('supermarket/single', [

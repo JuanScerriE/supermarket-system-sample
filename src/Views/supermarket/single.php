@@ -1,16 +1,13 @@
 <?php
 /**
- * one supermarket and the products it stocks: the main screen for staff
- * updating stock and prices.
- *
  * @var array{id: int, name: string}                                       $supermarket
  * @var list<array{id: int, name: string, stock: int, price_cents: int}>   $products
  */
 
 $search_term = (string) ($_GET['search_term'] ?? '');
 
-// the edit page gets the search term too, so "Save" can bring staff back to
-// this same filtered list (see ProductController::update_supermarket_product)
+// the edit page gets the search term too, so "save" can bring staff back to
+// this same filtered list
 $query = $search_term === '' ? '' : '?' . http_build_query(['search_term' => $search_term]);
 ?>
 <?= breadcrumbs(['Supermarkets' => '/supermarkets', $supermarket['name'] => null]) ?>
@@ -21,7 +18,7 @@ $query = $search_term === '' ? '' : '?' . http_build_query(['search_term' => $se
     <a class="button" href="/supermarkets/<?= e($supermarket['id']) ?>/products/create">Add Product</a>
     <a class="button button-secondary" href="/supermarkets/<?= e($supermarket['id']) ?>/edit">Rename</a>
     <form method="POST" action="/supermarkets/<?= e($supermarket['id']) ?>" id="delete-supermarket"
-          data-confirm="Delete <?= e($supermarket['name']) ?> and its stock and prices? This can't be undone.">
+          data-confirm="Delete <?= e($supermarket['name']) ?> and all its products? This can't be undone.">
       <input type="hidden" name="_method" value="delete" />
       <button class="button button-danger" type="submit">Delete</button>
     </form>

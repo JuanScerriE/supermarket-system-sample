@@ -1,8 +1,5 @@
 <?php
 /**
- * edit the stock and price of one product at one supermarket: the screen
- * staff use most, so big controls and one obvious "Save".
- *
  * @var array{supermarket_id: int, supermarket_name: string, product_id: int, product_name: string, stock: int, price_cents: int}  $product
  */
 
@@ -23,15 +20,12 @@ $action = '/supermarkets/' . $product['supermarket_id'] . '/products/' . $produc
 <h1><?= e($product['product_name']) ?> (#<?= e($product['product_id']) ?>)</h1>
 
 <div class="detail">
-<!--  <img class="detail-image product-image" width="280" height="280"-->
-<!--       alt="Image of --><?php //= e($product['product_name']) ?><!--" src="/products/--><?php //= e($product['product_id']) ?><!--/image">-->
-<!---->
-
   <img id="product_preview" class="detail-image product-image" width="256" height="256"
        alt="Image of <?= e($product['product_name']) ?>" src="/products/<?= e($product['product_id']) ?>/image">
 
   <form method="POST" action="<?= e($action) ?>" class="form-stack panel" id="edit-supermarket-product" enctype="multipart/form-data">
     <input type="hidden" name="_method" value="put" />
+
     <input type="hidden" name="return_search" value="<?= e($return_search) ?>" />
 
     <p class="hint">At <?= e($product['supermarket_name']) ?></p>
@@ -69,7 +63,7 @@ $action = '/supermarkets/' . $product['supermarket_id'] . '/products/' . $produc
 
 <section class="danger-zone">
   <form method="POST" action="<?= e($action) ?>" id="delete-supermarket-product"
-        data-confirm="Remove <?= e($product['product_name']) ?> from <?= e($product['supermarket_name']) ?>? The product itself is kept.">
+        data-confirm="Remove <?= e($product['product_name']) ?> from <?= e($product['supermarket_name']) ?>?">
     <input type="hidden" name="_method" value="delete" />
     <button class="button button-danger" type="submit">Remove product from supermarket</button>
   </form>

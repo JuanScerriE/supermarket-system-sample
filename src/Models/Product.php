@@ -9,27 +9,34 @@ use PDO;
 use Throwable;
 
 class Product {
+
   /**
    * create a new product entry
    *
-   * @param string      $name   name of product
-   * @param string|null $image  raw image bytes (e.g. from file_get_contents()), or null for no image
+   * @param int $supermarket_id id of the supermarket
+   * @param string $name the name of the product
+   * @param int $stock the amount of product in stock
+   * @param int $price_cents the price of the product in cents (e.g. 1 euro => 100 cents)
+   * @param string|null $image_str
    *
-   * @return ?int returns the id of the newly inserted item
+   * @return int|null returns last inserted id
    *
    * @throws Throwable
-   *
-   * @example create('Coca Cola Can 250ml', file_get_contents('coca-cola.jpg'))
    */
-  public static function create(string $name, ?string $image): ?int
+
+  public static function create(int $supermarket_id, string $name, int $stock, int $price_cents, ?string $image_str): ?int
   {
-    // Database::query() binds everything as a string, which would store the
-    // image as TEXT; bind it explicitly as a BLOB (PARAM_LOB) instead.
-    // no hex / X'...' needed here: that is only for writing values into SQL text.
-    $stmt = Database::connection()->prepare('INSERT INTO products (name, image, image_md5) VALUES (:name, :image, :image_md5)');
+    $stmt = Database::connection()->prepare(<<<SQL
+INSERT INTO products (name, stock, price_cents, image, image_md5, supermarket_id) VALUES
+    (:name, :stock, :price_cents, :image, :image_md5, :supermarket_id)
+SQL
+    );
     $stmt->bindValue(':name', $name);
-    $stmt->bindValue(':image', $image, $image === null ? PDO::PARAM_NULL : PDO::PARAM_LOB);
-    $stmt->bindValue(':image_md5', $image === null ? null : md5($image), $image === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+    $stmt->bindValue(':stock', $stock);
+    $stmt->bindValue(':price_cents', $price_cents);
+    $stmt->bindValue(':image', $image_str, $image_str === null ? PDO::PARAM_NULL : PDO::PARAM_LOB);
+    $stmt->bindValue(':image_md5', $image_str === null ? null : md5($image_str), $image_str === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+    $stmt->bindValue(':supermarket_id', $supermarket_id);
     $stmt->execute();
 
     // the id SQLite just generated for this connection's last INSERT.
@@ -39,150 +46,143 @@ class Product {
 
     return !$id ? null : intval($id);
   }
-  // TODO(juan): be careful with this as it can take down the DB
+
   /**
-   * get all products
+   * get one product as stocked by one supermarket, with both names
    *
-   * @return list<array{id: int, name: string}> every product; empty if there are none
+   * @param int $supermarket_id id of the supermarket
+   * @param int $product_id id of the product
+   *
+   * @return array{supermarket_id: int, supermarket_name: string, product_id: int, product_name: string, stock: int, price_cents: int}|null
+   *         the row, or null if this supermarket does not stock this product
    *
    * @throws Throwable
-   *
-   * @example get_all()
    */
-  public static function get_all(): array
+  public static function get_by_id(int $supermarket_id, int $product_id): ?array
   {
-    // fetchAll() returns [] when there are no rows, never false
-    return Database::query(
-      'SELECT id, name FROM products ORDER BY id DESC',
-    )->fetchAll();
+    $row = Database::query(<<<SQL
+SELECT 
+  p.supermarket_id AS "supermarket_id",
+  s.name AS "supermarket_name",
+  p.id AS "product_id",
+  p.name AS "product_name",
+  p.stock AS "stock",
+  p.price_cents AS "price_cents"
+FROM products AS p
+JOIN supermarkets AS s ON s.id = p.supermarket_id
+WHERE p.supermarket_id = :supermarket_id AND p.id = :product_id;
+SQL,
+      [
+        'supermarket_id' => $supermarket_id,
+        'product_id'     => $product_id,
+      ]
+    )->fetch();
+
+    return $row ?: null; // fetch() returns false when there is no row
   }
 
   /**
-   * get every product the given supermarket does NOT stock yet (the ones that
-   * can still be added to it)
+   * change the name, stock and price of a product at a supermarket
+   *
+   * @param int $supermarket_id id of the supermarket
+   * @param int $product_id id of the product
+   * @param int $stock the new amount in stock (0 or more)
+   * @param int $price_cents the new price in cents (0 or more)
+   *
+   * @return bool true if the row was updated, false if this supermarket does not stock this product
+   *
+   * @throws Throwable also if stock or price_cents is negative (CHECK constraint in the schema)
+   */
+  public static function update(int $supermarket_id, int $product_id, string $name, int $stock, int $price_cents): bool
+  {
+    $stmt = Database::query(<<<SQL
+UPDATE products
+SET 
+  name = :name,
+  stock = :stock,
+  price_cents = :price_cents
+WHERE supermarket_id = :supermarket_id AND id = :product_id
+SQL,
+      [
+        'supermarket_id' => $supermarket_id,
+        'product_id'     => $product_id,
+        'name'          => $name,
+        'stock'          => $stock,
+        'price_cents'    => $price_cents,
+      ]
+    );
+
+    return $stmt->rowCount() > 0; // 0 = no such (supermarket, product) pair
+  }
+
+  /**
+   * delete an item from a supermarket
+   *
+   * @param int $product_id id of the product
+   *
+   * @return bool true if the row was deleted, false if this supermarket does not stock this product
+   *
+   * @throws Throwable
+   */
+  public static function delete(int $product_id): bool
+  {
+    $stmt = Database::query(
+      'DELETE FROM products WHERE id = :product_id;',
+      [
+        'product_id' => $product_id,
+      ]
+    );
+
+    return $stmt->rowCount() > 0;
+  }
+
+  /**
+   * get every product stocked by the given supermarket, with its stock and price there
    *
    * @param int $supermarket_id id of the supermarket
    *
-   * @return list<array{id: int, name: string}> products sorted by name; empty if it stocks them all
+   * @return list<array{id: int, name: string, stock: int, price_cents: int}>
+   *         one row per product, where name is the product's name and
+   *         price_cents is its price at this supermarket;
+   *         empty if the supermarket stocks no products
    *
    * @throws Throwable
-   *
-   * @example get_not_in_supermarket(1)
    */
-  public static function get_not_in_supermarket(int $supermarket_id): array
-  {
-    // NOT EXISTS: keep a product only if no supermarket_products row links it
-    // to this supermarket
+  public static function get_by_supermarket(int $supermarket_id): array {
     return Database::query(<<<SQL
-SELECT id, name FROM products AS p
-WHERE NOT EXISTS (
-  SELECT 1 FROM supermarket_products AS sp
-  WHERE sp.product_id = p.id AND sp.supermarket_id = :supermarket_id
-)
-ORDER BY name
+SELECT id, name, stock, price_cents FROM products
+WHERE supermarket_id = :supermarket_id
+ORDER BY id DESC
 SQL,
       ['supermarket_id' => $supermarket_id],
     )->fetchAll();
   }
 
-  /**
-   * get a product by its id
-   *
-   * @param int $id the id of the product
-   *
-   * @return array{id: int, name: string}|null the product, or null if no product has this id
-   *
-   * @throws Throwable
-   *
-   * @example find_by_id(10)
-   */
-  public static function find_by_id(int $id): ?array
-  {
-    // fetch() (not fetchAll()) is correct here: the id is unique, so there is
-    // at most one row
-    $product = Database::query(
-      'SELECT id, name FROM products WHERE id = :id',
-      ['id' => $id]
-    )->fetch();
-
-    return $product ?: null; // fetch() returns false when there is no row
-  }
-
 
   /**
-   * update product name by id
+   * get every product stocked by the given supermarket, with its stock and price there
    *
-   * @param int $id the id of the product
-   * @param string $name the new name of the product
+   * @param int $supermarket_id id of the supermarket
+   * @param string $search_term search term to filter by name on product
    *
-   * @return bool true if the product was updated, false if no product has this id
-   *
-   * @throws Throwable
-   *
-   * @example update_name(10, 'Coca Cola Can 330ml')
-   */
-  public static function update_name(int $id, string $name): bool
-  {
-    $stmt = Database::query(
-      'UPDATE products SET name = :name WHERE id = :id',
-      ['id' => $id, 'name' => $name]
-    );
-
-    return $stmt->rowCount() > 0; // 0 = no product has this id
-  }
-
-  /**
-   * update product image by id
-   *
-   * @param int $id the id of the product
-   * @param ?string $image the new image bytes, or null to remove the image
-   *
-   * @return bool true if the product was updated, false if no product has this id
+   * @return list<array{id: int, name: string, stock: int, price_cents: int}>
+   *         one row per product, where name is the product's name and
+   *         price_cents is its price at this supermarket;
+   *         empty if the supermarket stocks no products
    *
    * @throws Throwable
-   *
-   * @example update_image(10, "<image>")
    */
-  public static function update_image(int $id, ?string $image): bool
-  {
-    $stmt = Database::connection()->prepare(
-      'UPDATE products SET image = :image, image_md5 = :image_md5 WHERE id = :id'
-    );
-    $stmt->bindValue(':id', $id);
-    $stmt->bindValue(':image', $image, $image === null ? PDO::PARAM_NULL : PDO::PARAM_LOB);
-    $stmt->bindValue(':image_md5', $image === null ? null : md5($image), $image === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-    $stmt->execute();
+  public static function get_by_supermarket_and_name(int $supermarket_id, string $search_term): array {
+    $escaped = Database::escape_like($search_term);
 
-    return $stmt->rowCount() > 0; // 0 = no product has this id
-  }
-
-
-  /**
-   * search products whose name contains the given text (case-insensitive)
-   *
-   * @param string $name text to look for anywhere in the name, e.g. 'milk' matches 'Skimmed Milk 1L'
-   *
-   * @return list<array{id: int, name: string}> matching products sorted by name; empty if none match
-   *
-   * @throws Throwable
-   *
-   * @example find_by_name('milk')
-   */
-  public static function find_by_name(string $name): array
-  {
-    // Database::query() only protects against SQL injection; % and _ in $name
-    // would still act as LIKE wildcards, so escape them first. without this,
-    // searching for "%" returns every product
-    $escaped = Database::escape_like($name);
-
-    // in SQLite, LIKE is case-insensitive for ASCII letters (a-z), so
-    // 'milk' matches 'Skimmed Milk 1L'. the wrapping % makes it a "contains" search
-    return Database::query(
-      "SELECT id, name FROM products WHERE name LIKE :pattern ESCAPE '\\' ORDER BY name",
-      ['pattern' => '%' . $escaped . '%']
+    return Database::query(<<<SQL
+SELECT id, name, stock, price_cents FROM products
+WHERE supermarket_id = :supermarket_id AND name LIKE :pattern ESCAPE '\\' ORDER BY name
+SQL,
+      ['supermarket_id' => $supermarket_id,
+        'pattern'        => '%' . $escaped . '%'],
     )->fetchAll();
   }
-
 
   /**
    * get a product image by its id
@@ -194,8 +194,6 @@ SQL,
    *         the product has no image); null if no product has this id
    *
    * @throws Throwable
-   *
-   * @example get_image(10)
    */
   public static function get_image(int $id): ?array {
     $product_image = Database::query(
@@ -207,24 +205,25 @@ SQL,
   }
 
   /**
-   * delete a product; its supermarket_products rows are removed too
-   * (ON DELETE CASCADE)
+   * update product image by id
    *
    * @param int $id the id of the product
+   * @param ?string $image the new image bytes, or null to remove the image
    *
-   * @return bool true if a product was deleted, false if no product has this id
+   * @return bool true if the product was updated, false if no product has this id
    *
    * @throws Throwable
-   *
-   * @example delete(10)
    */
-  public static function delete(int $id): bool
+  public static function update_image(int $id, ?string $image): bool
   {
-    $stmt = Database::query(
-      'DELETE FROM products WHERE id = :id',
-      ['id' => $id]
+    $stmt = Database::connection()->prepare(
+      'UPDATE products SET image = :image, image_md5 = :image_md5 WHERE id = :id'
     );
+    $stmt->bindValue(':id', $id);
+    $stmt->bindValue(':image', $image, $image === null ? PDO::PARAM_NULL : PDO::PARAM_LOB);
+    $stmt->bindValue(':image_md5', $image === null ? null : md5($image), $image === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+    $stmt->execute();
 
-    return $stmt->rowCount() > 0; // number of rows the DELETE removed
+    return $stmt->rowCount() > 0;
   }
 }

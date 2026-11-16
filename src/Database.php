@@ -92,23 +92,17 @@ class Database
     return $stmt;
   }
 
-  /**
-   * escape LIKE wildcards so user text is matched literally.
-   *
-   * prepared statements stop SQL injection, but they do NOT touch % and _:
-   * inside a LIKE pattern those are still wildcards (% = any text, _ = any
-   * single character). this escapes them, plus the escape character itself.
-   *
-   * the query MUST declare the same escape character:
-   *     WHERE name LIKE :pattern ESCAPE '\'
-   *
-   * @example escape_like('50%_off') // '50\%\_off'
-   */
   public static function escape_like(string $value): string
   {
-    return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    // for like patterns we don't want to allow % and _ in the like pattern
+    // so we can escape this with \% and \_ by specifying a ESCAPE '\' after the
+    // LIKE :pattern (LIKE :pattern ESAPCE '\').
+    //
+    // one issue is that \ becomes a special character which itself has to be
+    // escaped, so we replace this accordingly
+    $escaped_value = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+
+    return $escaped_value;
   }
-
-
 }
 

@@ -915,9 +915,13 @@ input[type="checkbox"] {
 
 /* confirmation / error pages */
 .message {
-  max-width: 560px;
+  /*max-width: 560px;*/
   margin: var(--space-6) auto;
   text-align: center;
+}
+
+.message .button {
+  min-width: 0;
 }
 
 .message .status {
