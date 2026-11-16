@@ -45,8 +45,12 @@ $action = '/supermarkets/' . $product['supermarket_id'] . '/products/' . $produc
     <p class="hint">JPEG, PNG or WebP. Large photos are shrunk before uploading.</p>
 
     <label for="product_stock">Stock</label>
-    <input type="number" id="product_stock" name="product_stock" min="0" step="1" inputmode="numeric"
-           value="<?= e($product['stock']) ?>" required data-stepper />
+    <div class="stepper">
+      <button type="button" id="decrease-button" class="button button-secondary" aria-label="Decrease by 1">-</button>
+      <input type="number" id="product_stock" name="product_stock" min="0" step="1" inputmode="numeric"
+             value="<?= e($product['stock']) ?>" required>
+      <button type="button" id="increase-button" class="button button-secondary" aria-label="Increase by 1">+</button>
+    </div>
 
     <label for="product_price">Price</label>
     <div class="price-input">

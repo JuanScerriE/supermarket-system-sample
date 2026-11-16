@@ -6,16 +6,102 @@ taking a Server-Side Rendering approach.
 This has been an opportunity for me to learn PHP and Server-Side Rendering, and also
 how an MVC framework might operate.
 
-## Constraint(s)
+## Feature(s)
 
-since an SSR approach is being used, some difficulties include:
+### Adding a new supermarket
 
-1. client-side rendering
-    1. having client side rendering means that rendering logic is being split between the front and the back end, this makes the code in general less readable
-   2. the main consequences of this is using forms as much as possible for submission of information
+![Adding a supermarket](images/add-supermarket.gif)
 
+### Renaming a supermarket
 
-## Initial ERD of the Database
+![Renaming a supermarket](images/rename-supermarket.gif)
+
+### Deleting a supermarket
+
+![Deleting a supermarket](images/delete-supermarket.gif)
+
+### Adding a new product
+
+![Adding a product](images/add-product.gif)
+
+### Editing a product
+
+![Editing a product](images/edit-product.gif)
+
+### Deleting a product
+
+![Deleting a product](images/delete-product.gif)
+
+### Capturing with a camera
+
+![Capturing with a camera](images/camera-capture.gif)
+
+## Building/Running
+
+requirements: [Docker](https://docs.docker.com/get-docker/) with Docker Compose.
+
+```sh
+git clone <repo-url> supermarket-system
+cd supermarket-system
+docker compose up --build
+```
+
+open <http://localhost:5173>.
+
+NOTE: the database will already be seeded with example shops and products using the script in `/bin`
+
+to stop the container run in the directory of project the blow command (-v ensures the volume is also deleted):
+
+```shell
+docker compose down -v
+```
+
+## Project Structure
+
+```
+bin/db             database CLI for creating the app.sqlite DB without needing to run the app
+bin/generate-seed  fake data generator
+database/          contains app.sqlite (created on first run, not committed)
+docker/            entrypoint in docker which is the start of turning on the container; refer to https://docs.docker.com/reference/dockerfile/#understand-how-cmd-and-entrypoint-interact
+images/            images used just for this README.md
+public/            web root (index.php front controller, css, js, assets)
+schema/            create_db.sql, seed.sql and seed images
+src/               Router, Database, Controllers, Models, Views & helpers php files
+config.php         paths to the database and schema
+```
+
+## Design, Research and Observations
+
+1. **Server-side rendering vs. client-side updates.** With PHP rendering the HTML on the
+   server, updating the page with `fetch` or XHR adds complexity, because the same markup
+   then has to be built and maintained in client-side JavaScript too. To avoid this, the
+   app uses plain HTML forms wherever possible.
+2. **Security.** All database queries use PDO prepared statements, which prevents SQL
+   injection. All output is escaped with `htmlspecialchars`, which prevents cross-site
+   scripting (XSS). A helper also escapes the `LIKE` wildcards (`%` and `_`) in search
+   terms, so they are matched as literal characters.
+3. **Storing images as BLOBs.** Storing images in the database is unusual. It does,
+   however, require checking every upload's file type and size, so the file is valid and
+   small enough to stay within PHP's upload limits.
+4. **Testing.** I used Claude Code to probe for issues like these. Ideally, this would be
+   replaced by a proper automated test suite.
+5. **Documentation.** I used Claude Code to generate PHPDoc comments in some places, which
+   improves editor autocompletion.
+6. **CSS.** Claude Code produced an initial CSS template, which I then reviewed and
+   adjusted for responsiveness. The MDN Web Docs were the most useful resource for
+   understanding CSS behaviour.
+7. **No CSS framework.** I normally use Tailwind, but it needs a build step, which would
+   have made the project significantly more complex. Loading Bootstrap from a CDN was
+   also ruled out, because it makes the app depend on infrastructure outside its own
+   server.
+8. **Implicit variables in views.** One annoyance with PHP is that an included view file
+   can read any variable from the scope that includes it, without that variable being
+   passed in explicitly. This makes views harder to maintain, and it is quite different
+   from frameworks like React, where a component only receives the props it is given.
+
+## ERD
+
+### Initial ERD
 
 ![initial erd of the database](./images/initial-erd.png)
 
@@ -24,7 +110,7 @@ across many different supermarkets. A **benefit** of this way of structuring the
 find discrepancies between different stores selling the same product at different prices. However,
 a **disadvantage** is a complicated user workflow.
 
-## Final ERD
+### Final ERD
 
 ![erd of the database](./images/erd.png)
 
@@ -32,166 +118,3 @@ Above ERD, solves the issue with the user journey and also reduces overall
 program complexity but trades of queryability and also sacrifices more disk space.
 An alternative would be expecting a SKU number which can help identify and merge
 two products, nevertheless the images need to retained for every submission.
-
-## Features
-
-- **Supermarkets**: create, list, search, rename and delete supermarkets.
-- **Products**: create, list, search, update and delete products. Each product can have an optional image.
-- **Stock and prices per supermarket**: link a product to a supermarket with its own stock level and price, then update or remove that link. Prices are stored in cents to avoid floating-point rounding errors.
-- **Search**: case-insensitive "contains" search on supermarkets, products, and the products inside a single supermarket. The search is kept when you return to a list after editing.
-- **Product images**
-  - Accepts JPEG, PNG and WebP. The file type is checked from the file's bytes, not from its extension.
-  - Images are resized in the browser before upload, then resized again on the server with GD to a maximum of 512px.
-  - Images are stored in the database and served with an `ETag`, so browsers don't download an unchanged image again.
-  - Products without an image show a placeholder.
-- **Camera capture**: take a product photo directly with the device's camera (selfie or webcam). This needs HTTPS or `localhost`. If the camera isn't available, the button is hidden and normal file upload still works.
-- **Proper HTTP handling**
-  - Forms follow Post/Redirect/Get with `303` redirects.
-  - `PUT` and `DELETE` are sent from forms through a hidden `_method` field.
-  - Errors return the right status code, such as `400`, `404`, `413` for an upload that is too large, and `415` for an unsupported image type.
-- **Safe by default**: every query uses a prepared statement, and all output is escaped. Only `public/` is exposed to the web server.
-- **Database tooling**
-  - `bin/db` creates, seeds, resets, drops or opens the SQLite database.
-  - `bin/generate-seed` generates a large, reproducible set of fake data.
-
-## Project layout
-
-```
-public/          web root (index.php front controller, css, js, assets)
-src/             Router, Database, Controllers, Models, views, helpers
-schema/          create_db.sql, seed.sql and seed images
-bin/db           database CLI
-bin/generate-seed  fake data generator
-config.php       paths to the database and schema
-database/        app.sqlite (created on first run, not committed)
-```
-
-## Setup
-
-There are two ways to run the app. Docker is the easiest because PHP and its extensions come with the image.
-
-### Option 1: Docker
-
-Requirements: [Docker](https://docs.docker.com/get-docker/) with Docker Compose.
-
-```sh
-git clone <repo-url> supermarket-system
-cd supermarket-system
-docker compose up --build
-```
-
-Open <http://localhost:5173>.
-
-- On the first start, the container creates the database and seeds it with test data (see `docker/entrypoint.sh`).
-- The database is stored in the named volume `db-data`, so your data survives `docker compose down` and rebuilds.
-- To start again with a fresh database, run:
-
-  ```sh
-  docker compose down -v      # -v also deletes the db-data volume
-  docker compose up --build
-  ```
-
-- To run database commands inside the running container:
-
-  ```sh
-  docker compose exec app php bin/db reset
-  ```
-
-The image is based on Alpine Linux and installs PHP 8.5 with the `gd`, `pdo_sqlite` and `fileinfo` extensions. Uploads are limited to 8 MB per file and 10 MB per request.
-
-### Option 2: PHP and Composer directly
-
-Requirements:
-
-- **PHP 8.5 or newer.** The app uses the built-in `Uri` extension, which first ships with 8.5.
-- **[Composer](https://getcomposer.org/)**
-- The PHP extensions **`gd`**, **`fileinfo`** and **`pdo_sqlite`**
-- (Optional) the `sqlite3` CLI, which is only needed for `bin/db shell`.
-
-#### 1. Enable the required extensions
-
-These three extensions are often disabled by default, so you need to turn them on in `php.ini`.
-
-1. Find the `php.ini` file your PHP is using:
-
-   ```sh
-   php --ini
-   ```
-
-   Look at the line `Loaded Configuration File`.
-
-2. Open that file and find these lines. Remove the leading `;` from each one to enable it:
-
-   ```ini
-   extension=fileinfo
-   extension=gd
-   extension=pdo_sqlite
-   ```
-
-   On Windows, also make sure `extension_dir` points to your PHP `ext` folder, for example `extension_dir = "ext"`.
-
-3. Images are uploaded through POST, so it's worth raising PHP's default 2 MB upload limit in the same file:
-
-   ```ini
-   upload_max_filesize = 8M
-   post_max_size = 10M
-   ```
-
-4. Check that the extensions are loaded:
-
-   ```sh
-   php -m | grep -iE 'gd|fileinfo|pdo_sqlite'
-   ```
-
-   All three should be listed.
-
-> **Homebrew (macOS) note:** Homebrew's PHP already has `gd`, `fileinfo` and `pdo_sqlite` built in. If `php -m` already lists them, leave those `extension=` lines commented out. Enabling them again causes "Unable to load dynamic library" warnings.
-
-#### 2. Install and set up the database
-
-```sh
-git clone <repo-url> supermarket-system
-cd supermarket-system
-composer install          # generates the autoloader in vendor/
-composer db:create        # creates database/app.sqlite with the tables
-composer db:seed          # (optional) loads test data from schema/seed.sql
-```
-
-#### 3. Run the app
-
-```sh
-composer serve
-```
-
-Open <http://localhost:8000>.
-
-| Script | What it does |
-| --- | --- |
-| `composer serve` | Dev server on `localhost:8000` with all errors shown |
-| `composer serve:debug` | Same as `serve`, but starts an Xdebug session on every request |
-| `composer serve:lan` | Serves on `0.0.0.0:5173` with 4 workers and errors hidden, so other devices on your network can reach it |
-| `composer db:create` | Create the database file and tables (safe to re-run) |
-| `composer db:seed` | Insert the test data |
-| `composer db:reset` | Delete the database, then create and seed it again |
-| `composer db:generate-seed` | Regenerate `schema/seed.sql` with fake data |
-
-> The camera only works over HTTPS or on `localhost`. With `serve:lan`, other devices connect over plain HTTP, so they get the file picker instead of the camera button.
-
-## Database CLI
-
-```sh
-php bin/db create   # create the database file and tables (safe to re-run)
-php bin/db seed     # insert test data from schema/seed.sql
-php bin/db reset    # delete the database, then create and seed it from scratch
-php bin/db drop     # delete the database file
-php bin/db shell    # open the database in the sqlite3 shell
-```
-
-Generate a different data set, then load it:
-
-```sh
-php bin/generate-seed --supermarkets=50 --products=5000 --coverage=0.3 --seed=42
-php bin/db reset
-```
-
-Run `php bin/generate-seed --help` to see all the options. If a file named `schema/images/<type>.jpg` exists (for example `coffee.jpg`), every product of that type uses it as its image. Other product types get a generated placeholder.

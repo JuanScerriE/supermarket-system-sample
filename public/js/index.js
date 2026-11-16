@@ -35,38 +35,27 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
   });
 });
 
-// ---------- data-stepper: big − / + buttons around a number input ----------
-// <input type="number" min="0" data-stepper>  becomes  [ − ] [ 12 ] [ + ]
-// without JavaScript it stays a normal number input
-document.querySelectorAll('input[type="number"][data-stepper]').forEach((input) => {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'stepper';
-  input.replaceWith(wrapper);
+(() => {
+  const product_stock = document.querySelector("#product_stock");
 
-  const make_button = (text, label, step) => {
-    const button = document.createElement('button');
-    button.type = 'button';               // not "submit": pressing it must not send the form
-    button.className = 'button button-secondary';
-    button.textContent = text;
-    button.setAttribute('aria-label', label);
-    button.addEventListener('click', () => {
-      // an empty or invalid field counts as 0
-      if (input.value === '' || Number.isNaN(input.valueAsNumber)) input.value = '0';
-      // stepUp/stepDown respect min="0" and step, so stock never goes negative
-      step > 0 ? input.stepUp() : input.stepDown();
-      // we are dispatching events as though we actually changed the value
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    return button;
-  };
+  const decrease_button = document.querySelector("#decrease-button");
+  const increase_button = document.querySelector("#increase-button")
 
-  wrapper.append(
-    make_button('−', 'Decrease by 1', -1),
-    input,
-    make_button('+', 'Increase by 1', +1),
-  );
-});
+  decrease_button.addEventListener('click', () => {
+    if (product_stock.value === '' || Number.isNaN(product_stock.valueAsNumber)) product_stock.value = '0';
+    product_stock.stepDown();
+    product_stock.dispatchEvent(new Event('input', {bubbles: true}));
+    product_stock.dispatchEvent(new Event('change', {bubbles: true}));
+  });
+
+  increase_button.addEventListener('click', () => {
+    if (product_stock.value === '' || Number.isNaN(product_stock.valueAsNumber)) product_stock.value = '0';
+    product_stock.stepUp();
+    // we are dispatching events as though we actually changed the value
+    product_stock.dispatchEvent(new Event('input', {bubbles: true}));
+    product_stock.dispatchEvent(new Event('change', {bubbles: true}));
+  });
+})();
 
 // burger menu: aria-expanded on the button is the state, CSS shows the nav when it's "true"
 const nav_toggle = document.querySelector('.nav-toggle');
