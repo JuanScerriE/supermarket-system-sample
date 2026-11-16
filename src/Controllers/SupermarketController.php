@@ -55,14 +55,14 @@ class SupermarketController
   }
 
   // GET /supermarkets/create
-  public function create_supermarket_view(): void {
+  public function create_view(): void {
     view('supermarket/new', [
       'title' => 'New Supermarket',
     ]);
   }
 
   // POST /api/supermarkets/create
-  public function create_supermarket(): void {
+  public function create(): void {
     $name = trim((string) ($_POST['supermarket_name'] ?? ''));
 
     if ($name === '') {
@@ -89,7 +89,7 @@ class SupermarketController
   }
 
   // GET /supermarkets/{id}/edit
-  public function edit_supermarket_view(int $id) : void {
+  public function update_view(int $id) : void {
     $supermarket = Supermarket::find_by_id($id);
 
     if ($supermarket === null) {
@@ -102,26 +102,8 @@ class SupermarketController
     ]);
   }
 
-  // DELETE /supermarkets/{id}
-  public function delete_supermarket(int $id): void {
-    $supermarket = Supermarket::find_by_id($id);
-
-    if ($supermarket === null) {
-      abort(404, 'supermarket with ID ' . $id . ' does not exist!');
-    }
-
-    if (!Supermarket::delete($id)) {
-      abort(500, 'could not delete supermarket');
-    }
-
-    view("supermarket/delete", [
-      'title'  => 'Delete Supermarket',
-      'supermarket' => $supermarket,
-    ]);
-  }
-
   // PUT /supermarkets/{id}
-  public function update_supermarket(int $id): void {
+  public function update(int $id): void {
     $name = trim((string) ($_POST['supermarket_name'] ?? ''));
 
     if ($name === '') {
@@ -145,5 +127,23 @@ class SupermarketController
     header("Location: /supermarkets/$id", true, 303);   // Post/Redirect/Get
 
     exit;
+  }
+
+  // DELETE /supermarkets/{id}
+  public function delete(int $id): void {
+    $supermarket = Supermarket::find_by_id($id);
+
+    if ($supermarket === null) {
+      abort(404, 'supermarket with ID ' . $id . ' does not exist!');
+    }
+
+    if (!Supermarket::delete($id)) {
+      abort(500, 'could not delete supermarket');
+    }
+
+    view("supermarket/delete", [
+      'title'  => 'Delete Supermarket',
+      'supermarket' => $supermarket,
+    ]);
   }
 }

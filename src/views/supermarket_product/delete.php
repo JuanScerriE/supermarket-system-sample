@@ -5,7 +5,7 @@
 ?>
 <section class="panel message">
   <h1><?= e($product['product_name']) ?> removed from <?= e($product['supermarket_name']) ?></h1>
-  <p class="hint">The product itself still exists; <?= e($product['supermarket_name']) ?> just no longer stocks it.</p>
+  <p class="hint">This does not affect other supermarkets which stock the same item.</p>
   <div class="page-actions">
     <a class="button" href="/supermarkets/<?= e($product['supermarket_id']) ?>">Back to <?= e($product['supermarket_name']) ?></a>
   </div>

@@ -59,7 +59,7 @@ $action = '/supermarkets/' . $product['supermarket_id'] . '/products/' . $produc
       <span aria-hidden="true">€</span>
       <!-- inputmode gives a number keypad; pattern matches what the server accepts -->
       <input type="text" id="product_price" name="product_price" inputmode="decimal"
-             pattern="\d+([.,]\d{2})?" title="A number, or a number with 2 decimals, e.g. 1 or 1.99"
+             pattern="\d+([.]\d{2})?" title="A number, or a number with 2 decimals, e.g. 1 or 1.99"
              value="<?= from_cents_to_euro($product['price_cents']) ?>" required />
     </div>
 

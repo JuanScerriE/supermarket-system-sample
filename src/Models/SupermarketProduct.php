@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Database;
+use PDO;
 use Throwable;
 
 class SupermarketProduct {
@@ -23,17 +24,51 @@ class SupermarketProduct {
    *
    * @example create(1, 1, 10, 100)
    */
-  public static function create(int $supermarket_id, int $product_id, int $stock, int $price_cents): void
+//  public static function create(int $supermarket_id, int $product_id, int $stock, int $price_cents): void
+//  {
+//    Database::query(
+//      'INSERT INTO supermarket_products (supermarket_id, product_id, stock, price_cents) VALUES (:supermarket_id, :product_id, :stock, :price_cents)',
+//      [
+//        'supermarket_id' => $supermarket_id,
+//        'product_id'     => $product_id,
+//        'stock'          => $stock,
+//        'price_cents'    => $price_cents,
+//      ]
+//    );
+//  }
+
+  public static function create(int $supermarket_id, string $name, int $stock, int $price_cents, ?string $image_str): ?int
   {
-    Database::query(
-      'INSERT INTO supermarket_products (supermarket_id, product_id, stock, price_cents) VALUES (:supermarket_id, :product_id, :stock, :price_cents)',
-      [
-        'supermarket_id' => $supermarket_id,
-        'product_id'     => $product_id,
-        'stock'          => $stock,
-        'price_cents'    => $price_cents,
-      ]
+//    Database::query(
+//      'INSERT INTO supermarket_products (supermarket_id, product_id, stock, price_cents) VALUES (:supermarket_id, :product_id, :stock, :price_cents)',
+//      [
+//        'supermarket_id' => $supermarket_id,
+//        'product_id'     => $product_id,
+//        'stock'          => $stock,
+//        'price_cents'    => $price_cents,
+//      ]
+//    );
+
+
+    $stmt = Database::connection()->prepare(<<<SQL
+INSERT INTO products (name, stock, price_cents, image, image_md5, supermarket_id) VALUES
+    (:name, :stock, :price_cents, :image, :image_md5, :supermarket_id)
+SQL
     );
+    $stmt->bindValue(':name', $name);
+    $stmt->bindValue(':stock', $stock);
+    $stmt->bindValue(':price_cents', $price_cents);
+    $stmt->bindValue(':image', $image_str, $image_str === null ? PDO::PARAM_NULL : PDO::PARAM_LOB);
+    $stmt->bindValue(':image_md5', $image_str === null ? null : md5($image_str), $image_str === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+    $stmt->bindValue(':supermarket_id', $supermarket_id);
+    $stmt->execute();
+
+    // the id SQLite just generated for this connection's last INSERT.
+    // it comes back as a string ("42"), so convert it
+
+    $id = Database::connection()->lastInsertId();
+
+    return !$id ? null : intval($id);
   }
 
   /**
