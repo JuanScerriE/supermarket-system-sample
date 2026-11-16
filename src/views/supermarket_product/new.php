@@ -1,4 +1,13 @@
 <?php
+///**
+// * add a product to a supermarket: either pick an existing product, or create
+// * a new one. stock and price apply to both.
+// *
+// * @var array{id: int, name: string}         $supermarket
+// * @var list<array{id: int, name: string}>   $products     products this supermarket doesn't stock yet
+// */
+
+
 /**
  * add a product to a supermarket: either pick an existing product, or create
  * a new one. stock and price apply to both.
@@ -8,7 +17,7 @@
  */
 
 // with nothing left to pick, start on "new product"
-$default_mode = $products === [] ? 'new' : 'existing';
+//$default_mode = $products === [] ? 'new' : 'existing';
 ?>
 <?= breadcrumbs([
   'Supermarkets'       => '/supermarkets',
@@ -21,38 +30,40 @@ $default_mode = $products === [] ? 'new' : 'existing';
 <form method="POST" action="/api/supermarkets/<?= e($supermarket['id']) ?>/products/create"
       enctype="multipart/form-data" class="form-stack panel" id="add-supermarket-product">
 
-  <fieldset class="choice">
-    <legend>Product</legend>
-    <label>
-      <input type="radio" name="product_mode" value="existing"
-        <?= $default_mode === 'existing' ? 'checked' : '' ?>
-        <?= $products === [] ? 'disabled' : '' ?>>
-      Use an existing product
-    </label>
-    <label>
-      <input type="radio" name="product_mode" value="new" <?= $default_mode === 'new' ? 'checked' : '' ?>>
-      Create a new product
-    </label>
-  </fieldset>
+<!--  <fieldset class="choice">-->
+<!--    <legend>Product</legend>-->
+<!--    <label>-->
+<!--      <input type="radio" name="product_mode" value="existing"-->
+<!--        --><?php //= $default_mode === 'existing' ? 'checked' : '' ?>
+<!--        --><?php //= $products === [] ? 'disabled' : '' ?><!--
+      Use an existing product-->
+<!--    </label>-->
+<!--    <label>-->
+<!--      <input type="radio" name="product_mode" value="new" --><?php //= $default_mode === 'new' ? 'checked' : '' ?><!--
+      Create a new product-->
+<!--    </label>-->
+<!--  </fieldset>-->
 
   <!-- the section that isn't chosen is `disabled`: its fields are skipped
        by validation and not sent with the form -->
-  <fieldset id="existing-product-fields" <?= $default_mode !== 'existing' ? 'disabled' : '' ?>>
-    <label for="existing_product">Search products</label>
-    <input type="text" list="product_options" id="existing_product" name="existing_product"
-           placeholder="Start typing…" autocomplete="off" required>
-    <!-- names aren't unique, so each option ends in its id: "Name (#42)" -->
-    <datalist id="product_options">
-      <?php foreach ($products as $product): ?>
-        <option data-product-id="<?= e($product['id']) ?>" value="<?= e($product['name']) ?> (#<?= e($product['id']) ?>)"></option>
-      <?php endforeach; ?>
-    </datalist>
-    <?php if ($products === []): ?>
-      <p class="hint"><?= e($supermarket['name']) ?> already stocks every product.</p>
-    <?php endif; ?>
-  </fieldset>
+<!--  <fieldset id="existing-product-fields" --><?php //= $default_mode !== 'existing' ? 'disabled' : '' ?><!--
+    <label for="existing_product">Search products</label>-->
+<!--    <input type="text" list="product_options" id="existing_product" name="existing_product"-->
+<!--           placeholder="Start typing…" autocomplete="off" required>-->
+<!--    <datalist id="product_options">-->
+<!--      --><?php //foreach ($products as $product): ?>
+<!--        <option data-product-id="--><?php //= e($product['id']) ?><!--" value="--><?php //= e($product['name']) ?><!-- (#--><?php //= e($product['id']) ?><!--)"></option>-->
+<!--      --><?php //endforeach; ?>
+<!--    </datalist>-->
+<!--    --><?php //if ($products === []): ?>
+<!--      <p class="hint">--><?php //= e($supermarket['name']) ?><!-- already stocks every product.</p>-->
+<!--    --><?php //endif; ?>
+<!--  </fieldset>-->
 
-  <fieldset id="new-product-fields" <?= $default_mode !== 'new' ? 'disabled' : '' ?>>
+    <!-- TODO(juan): this is only meant for actually switching on the backend which needs to be updated. -->
+    <input type="hidden" name="product_mode" value="new">
+
+<!--  <fieldset id="new-product-fields" --><?php //= $default_mode !== 'new' ? 'disabled' : '' ?>
     <label for="product_name">Product name</label>
     <input type="text" id="product_name" name="product_name" placeholder="e.g. Coca Cola 250ml" required>
 
@@ -69,7 +80,7 @@ $default_mode = $products === [] ? 'new' : 'existing';
         </button>
       </div>
     </div>
-  </fieldset>
+<!--  </fieldset>-->
 
   <label for="product_stock">Stock</label>
   <input type="number" id="product_stock" name="product_stock" min="0" step="1" inputmode="numeric"
@@ -96,24 +107,24 @@ $default_mode = $products === [] ? 'new' : 'existing';
 </dialog>
 
 <script>
-  const form = document.querySelector('#add-supermarket-product');
-
-  const sections = {
-    existing: document.querySelector('#existing-product-fields'),
-    new: document.querySelector('#new-product-fields'),
-  };
+  // const form = document.querySelector('#add-supermarket-product');
+  //
+  // const sections = {
+  //   existing: document.querySelector('#existing-product-fields'),
+  //   new: document.querySelector('#new-product-fields'),
+  // };
 
   // switching the radio enables one section and disables the other
   // (CSS hides the disabled one, see .form-stack fieldset:disabled)
-  form.addEventListener('change', (event) => {
-    if (event.target.name !== 'product_mode') return;
+  // form.addEventListener('change', (event) => {
+  //   if (event.target.name !== 'product_mode') return;
+  //
+  //   for (const [mode, section] of Object.entries(sections)) {
+  //     section.disabled = mode !== event.target.value;
+  //   }
+  // });
 
-    for (const [mode, section] of Object.entries(sections)) {
-      section.disabled = mode !== event.target.value;
-    }
-  });
-
-  const picker = document.querySelector('#existing_product');
+  // const picker = document.querySelector('#existing_product');
 
   // TODO(juan): this is not a good way of doing things honestly
   // form.addEventListener('submit', (event) => {
@@ -125,8 +136,8 @@ $default_mode = $products === [] ? 'new' : 'existing';
   //   picker.value = option.dataset.productId;
   // });
 
-  picker.addEventListener('input', () => {
-    const match = [...picker.list.options].some((option) => option.value === picker.value);
-    picker.setCustomValidity(match ? '' : 'Pick a product from the list.');
-  });
+  // picker.addEventListener('input', () => {
+  //   const match = [...picker.list.options].some((option) => option.value === picker.value);
+  //   picker.setCustomValidity(match ? '' : 'Pick a product from the list.');
+  // });
 </script>

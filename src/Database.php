@@ -18,7 +18,7 @@ use Throwable;
 
 class Database
 {
-  // `static` = shared by the whole class, not per object. We keep ONE
+  // `static` = shared by the whole class, not per object. we keep ONE
   // connection per request and reuse it (a simple "singleton").
   private static ?PDO $pdo = null;
 
@@ -83,18 +83,12 @@ class Database
   }
 
   /**
-   * Run a query with PREPARED STATEMENTS.
-   *
-   * NEVER build SQL by concatenating user input:
-   *     "SELECT * FROM users WHERE email = '$email'"   // SQL injection!
-   * Instead, use placeholders (:email) and pass the values separately.
-   * The database treats them as data, never as SQL code.
    * @throws Throwable
    */
   public static function query(string $sql, array $params = []): PDOStatement
   {
     $stmt = self::connection()->prepare($sql);
-    $stmt->execute($params);
+    $stmt->execute($params); // params like this should prevent SQL injection
     return $stmt;
   }
 

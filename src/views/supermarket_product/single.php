@@ -20,17 +20,35 @@ $action = '/supermarkets/' . $product['supermarket_id'] . '/products/' . $produc
   $product['product_name']     => null,
 ]) ?>
 
-<h1><?= e($product['product_name']) ?></h1>
+<h1><?= e($product['product_name']) ?> (#<?= e($product['product_id']) ?>)</h1>
 
 <div class="detail">
-  <img class="detail-image product-image" width="280" height="280"
+<!--  <img class="detail-image product-image" width="280" height="280"-->
+<!--       alt="Image of --><?php //= e($product['product_name']) ?><!--" src="/products/--><?php //= e($product['product_id']) ?><!--/image">-->
+<!---->
+
+  <img id="product_preview" class="detail-image product-image" width="256" height="256"
        alt="Image of <?= e($product['product_name']) ?>" src="/products/<?= e($product['product_id']) ?>/image">
 
-  <form method="POST" action="<?= e($action) ?>" class="form-stack panel" id="edit-supermarket-product">
+  <form method="POST" action="<?= e($action) ?>" class="form-stack panel" id="edit-supermarket-product" enctype="multipart/form-data">
     <input type="hidden" name="_method" value="put" />
     <input type="hidden" name="return_search" value="<?= e($return_search) ?>" />
 
     <p class="hint">At <?= e($product['supermarket_name']) ?></p>
+
+    <label for="product_name">Product name</label>
+    <input type="text" id="product_name" name="product_name" value="<?= e($product['product_name']) ?>" required />
+
+    <label for="product_image_file">Change image</label>
+    <div class="image-toolbar">
+      <input type="file" id="product_image_file" name="product_image_file"
+             accept="image/jpeg, image/png, image/webp"
+             data-resize-max="512" data-preview="#product_preview">
+      <button type="button" id="take-photo">
+        Use camera
+      </button>
+    </div>
+    <p class="hint">JPEG, PNG or WebP. Large photos are shrunk before uploading.</p>
 
     <label for="product_stock">Stock</label>
     <input type="number" id="product_stock" name="product_stock" min="0" step="1" inputmode="numeric"
@@ -56,3 +74,11 @@ $action = '/supermarkets/' . $product['supermarket_id'] . '/products/' . $produc
     <button class="button button-danger" type="submit">Remove product from supermarket</button>
   </form>
 </section>
+
+<dialog id="photo-modal" class="photo-modal">
+  <video class="camera-view" id="camera" playsinline muted></video>
+  <div class="toolbar">
+    <button class="button button-danger" id="photo-modal-close">Close</button>
+    <button type="button" id="camera-snap">Take Photo</button>
+  </div>
+</dialog>

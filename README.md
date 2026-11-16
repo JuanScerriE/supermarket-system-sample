@@ -1,6 +1,37 @@
 # Supermarket System
 
-A small supermarket stock and price manager written in plain PHP 8.5. It has no framework and stores everything in a single SQLite file. It was built as a learning project, so the code is heavily commented and shows how a front controller, a router, controllers, models and views fit together.
+A small supermarket stock and price manager written in plain PHP 8.5 and using SQLite,
+taking a Server-Side Rendering approach.
+
+This has been an opportunity for me to learn PHP and Server-Side Rendering, and also
+how an MVC framework might operate.
+
+## Constraint(s)
+
+since an SSR approach is being used, some difficulties include:
+
+1. client-side rendering
+    1. having client side rendering means that rendering logic is being split between the front and the back end, this makes the code in general less readable
+   2. the main consequences of this is using forms as much as possible for submission of information
+
+
+## Initial ERD of the Database
+
+![initial erd of the database](./images/initial-erd.png)
+
+The above ERD was my initial suggestion for an ERD, because it allows for the same product to be listed
+across many different supermarkets. A **benefit** of this way of structuring the data is that we can
+find discrepancies between different stores selling the same product at different prices. However,
+a **disadvantage** is a complicated user workflow.
+
+## Final ERD
+
+![erd of the database](./images/erd.png)
+
+Above ERD, solves the issue with the user journey and also reduces overall
+program complexity but trades of queryability and also sacrifices more disk space.
+An alternative would be expecting a SKU number which can help identify and merge
+two products, nevertheless the images need to retained for every submission.
 
 ## Features
 

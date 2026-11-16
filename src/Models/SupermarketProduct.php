@@ -51,11 +51,29 @@ class SupermarketProduct {
    */
   public static function get_by_id(int $supermarket_id, int $product_id): ?array
   {
+//    $row = Database::query(<<<SQL
+//SELECT supermarket_id, s.name AS "supermarket_name", product_id, p.name AS "product_name", stock, price_cents FROM supermarket_products
+//JOIN supermarkets AS s ON s.id = supermarket_id
+//JOIN products AS p ON p.id = product_id
+//WHERE supermarket_id = :supermarket_id AND product_id = :product_id;
+//SQL,
+//      [
+//        'supermarket_id' => $supermarket_id,
+//        'product_id'     => $product_id,
+//      ]
+//    )->fetch();
+
     $row = Database::query(<<<SQL
-SELECT supermarket_id, s.name AS "supermarket_name", product_id, p.name AS "product_name", stock, price_cents FROM supermarket_products
-JOIN supermarkets AS s ON s.id = supermarket_id
-JOIN products AS p ON p.id = product_id
-WHERE supermarket_id = :supermarket_id AND product_id = :product_id;
+SELECT 
+  p.supermarket_id AS "supermarket_id",
+  s.name AS "supermarket_name",
+  p.id AS "product_id",
+  p.name AS "product_name",
+  p.stock AS "stock",
+  p.price_cents AS "price_cents"
+FROM products AS p
+JOIN supermarkets AS s ON s.id = p.supermarket_id
+WHERE p.supermarket_id = :supermarket_id AND p.id = :product_id;
 SQL,
       [
         'supermarket_id' => $supermarket_id,
@@ -80,16 +98,33 @@ SQL,
    *
    * @example update(1, 10, 25, 199)
    */
-  public static function update(int $supermarket_id, int $product_id, int $stock, int $price_cents): bool
+  public static function update(int $supermarket_id, int $product_id, string $name, int $stock, int $price_cents): bool
   {
+//    $stmt = Database::query(<<<SQL
+//UPDATE supermarket_products
+//SET stock = :stock, price_cents = :price_cents
+//WHERE supermarket_id = :supermarket_id AND product_id = :product_id
+//SQL,
+//      [
+//        'supermarket_id' => $supermarket_id,
+//        'product_id'     => $product_id,
+//        'stock'          => $stock,
+//        'price_cents'    => $price_cents,
+//      ]
+//    );
+
     $stmt = Database::query(<<<SQL
-UPDATE supermarket_products
-SET stock = :stock, price_cents = :price_cents
-WHERE supermarket_id = :supermarket_id AND product_id = :product_id
+UPDATE products
+SET 
+  name = :name,
+  stock = :stock,
+  price_cents = :price_cents
+WHERE supermarket_id = :supermarket_id AND id = :product_id
 SQL,
       [
         'supermarket_id' => $supermarket_id,
         'product_id'     => $product_id,
+        'name'          => $name,
         'stock'          => $stock,
         'price_cents'    => $price_cents,
       ]
@@ -111,13 +146,13 @@ SQL,
    *
    * @example delete(1, 10)
    */
-  public static function delete(int $supermarket_id, int $product_id): bool
+//  public static function delete(int $supermarket_id, int $product_id): bool
+  public static function delete(int $product_id): bool
   {
     $stmt = Database::query(
-      'DELETE FROM supermarket_products WHERE supermarket_id = :supermarket_id AND product_id = :product_id',
+      'DELETE FROM products WHERE id = :product_id;',
       [
-        'supermarket_id' => $supermarket_id,
-        'product_id'     => $product_id,
+        'product_id' => $product_id,
       ]
     );
 
@@ -165,11 +200,19 @@ SQL,
    */
   public static function get_by_supermarket(int $supermarket_id): array {
     // fetchAll() returns [] when there are no rows, never false
+//    return Database::query(<<<SQL
+//SELECT product_id AS "id", p.name, stock, price_cents FROM supermarket_products
+//JOIN products AS p ON p.id = supermarket_products.product_id
+//WHERE supermarket_id = :supermarket_id
+//ORDER BY product_id DESC
+//SQL,
+//      ['supermarket_id' => $supermarket_id],
+//    )->fetchAll();
+
     return Database::query(<<<SQL
-SELECT product_id AS "id", p.name, stock, price_cents FROM supermarket_products
-JOIN products AS p ON p.id = supermarket_products.product_id
+SELECT id, name, stock, price_cents FROM products
 WHERE supermarket_id = :supermarket_id
-ORDER BY product_id DESC
+ORDER BY id DESC
 SQL,
       ['supermarket_id' => $supermarket_id],
     )->fetchAll();
@@ -196,13 +239,21 @@ SQL,
 
     $escaped = Database::escape_like($search_term);
 
+//    return Database::query(<<<SQL
+//SELECT product_id AS "id", p.name, stock, price_cents FROM supermarket_products
+//JOIN products AS p ON p.id = supermarket_products.product_id
+//WHERE supermarket_id = :supermarket_id AND p.name LIKE :pattern ESCAPE '\\' ORDER BY p.name
+//SQL,
+//      ['supermarket_id' => $supermarket_id,
+//       'pattern'        => '%' . $escaped . '%'],
+//    )->fetchAll();
+
     return Database::query(<<<SQL
-SELECT product_id AS "id", p.name, stock, price_cents FROM supermarket_products
-JOIN products AS p ON p.id = supermarket_products.product_id
-WHERE supermarket_id = :supermarket_id AND p.name LIKE :pattern ESCAPE '\\' ORDER BY p.name
+SELECT id, name, stock, price_cents FROM products
+WHERE supermarket_id = :supermarket_id AND name LIKE :pattern ESCAPE '\\' ORDER BY name
 SQL,
       ['supermarket_id' => $supermarket_id,
-       'pattern'        => '%' . $escaped . '%'],
+        'pattern'        => '%' . $escaped . '%'],
     )->fetchAll();
   }
 }

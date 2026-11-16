@@ -38,7 +38,7 @@
 
         <nav class="site-nav" id="site-nav" aria-label="main">
           <?= nav_link('/supermarkets', 'Supermarkets') ?>
-          <?= nav_link('/products', 'Products') ?>
+<!--          --><?php //= nav_link('/products', 'Products') ?>
         </nav>
       </div>
     </header>

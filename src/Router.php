@@ -11,12 +11,6 @@ use Uri\WhatWg;
 
 class Router
 {
-  /**
-   * registered routes, e.g.
-   * ['GET' => ['/notes/{id}/edit' => [NoteController::class, 'edit']]]
-   *
-   * @var array<string, array<string, array{0: class-string, 1: string}>>
-   */
   private array $routes = [];
 
   public function get(string $path, array $handler): void    { $this->add('GET', $path, $handler); }
@@ -54,10 +48,6 @@ class Router
     };
 
     foreach ($this->routes[$method] ?? [] as $pattern => $handler) {
-      // NOTE: this is quite an interesting approach and is easily prone to error
-      // although regex is fine, probably we'd want a proper parser of the URL to make
-      // sure things are correct
-      // Turn "/notes/{id}/edit" into the regex "#^/notes/(\d+)/edit$#"
       $regex = '#^' . preg_replace('#\{\w+}#', '(\d+)', $pattern) . '$#';
 
       if (preg_match($regex, $path, $matches)) {
